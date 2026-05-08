@@ -188,6 +188,18 @@ class ProductWidget extends StatelessWidget {
                           color: Color(0xff9D6E2D),
                         ),
                       ),
+                      if (product.discount != null &&
+                          product.discount! > 0) ...[
+                        const SizedBox(width: 2),
+                        Text(
+                          "₦${formatter.format(price)}",
+                          style: const TextStyle(
+                            decoration: TextDecoration.lineThrough,
+                            color: Colors.grey,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 6),
