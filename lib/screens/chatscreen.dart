@@ -406,6 +406,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: Color(0xff9D6E2D),
                 ),
               ),
+            10.getWidthWhiteSpacing,
             GestureDetector(
               onTap: () {
                 showCustomMenu(
@@ -700,13 +701,17 @@ void showCustomMenu({
 }) {
   showDialog(
     context: context,
-    barrierColor: Colors.transparent,
+    barrierColor: Colors.black26,
     builder: (context) {
       return Stack(
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: Container(color: Colors.transparent),
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.transparent,
+            ),
           ),
           Positioned(
             top: 60,
@@ -714,38 +719,92 @@ void showCustomMenu({
             child: Material(
               color: Colors.transparent,
               child: Container(
-                padding: const EdgeInsets.all(10),
+                width: 150, // smaller width
+                padding: const EdgeInsets.symmetric(vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(255, 233, 226, 226),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 8),
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
                   ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    /// Delete Message
                     InkWell(
                       onTap: () {
                         Navigator.pop(context);
-                        chatListProvider.deleteChat(productId, userId);
+
+                        chatListProvider.deleteChat(
+                          productId,
+                          userId,
+                        );
                       },
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text('Delete Message'),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline,
+                              size: 15,
+                              color: Colors.red,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Delete Messages',
+                              style: TextStyle(
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+
+                    Divider(
+                      height: 1,
+                      thickness: 0.8,
+                      color: Colors.grey.shade400,
+                    ),
+
+                    /// View Product
                     InkWell(
                       onTap: () {
                         Navigator.pop(context);
+
                         if (!isAdmin) {
                           onViewProduct();
                         }
                       },
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text('View Product'),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.remove_red_eye_outlined,
+                              size: 15,
+                              color: Color(0xff9D6E2D),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'View Product',
+                              style: TextStyle(
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

@@ -75,7 +75,7 @@ class _OrderHistoryState extends State<OrderHistory>
             children: [
               // Top bar
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.fromLTRB(8, 0, 8, 8),
                 child: Row(
                   children: [
                     GestureDetector(

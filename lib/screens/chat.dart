@@ -116,7 +116,7 @@ class _ChatState extends State<Chat> with WidgetsBindingObserver {
             children: [
               // ── PINNED HEADER (never scrolls) ───────────────────
               Padding(
-                padding: const EdgeInsets.only(left: 12, top: 8, right: 12),
+                padding: const EdgeInsets.only(left: 12, top: 0, right: 12),
                 child: Row(
                   children: [
                     Text(

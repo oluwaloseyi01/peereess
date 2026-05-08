@@ -71,7 +71,7 @@ class ProductWidget extends StatelessWidget {
                 topRight: Radius.circular(5),
               ),
               child: SizedBox(
-                height: 150,
+                height: 170,
                 width: double.infinity,
                 child: Stack(
                   fit: StackFit.expand,

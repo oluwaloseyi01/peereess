@@ -192,7 +192,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
         onTap: (index) => _onTabTapped(index, homeProvider),
         iconSize: 20,
         selectedItemColor: const Color(0xff9D6E2D),
-        unselectedItemColor: AppColor.iconColor,
+        unselectedItemColor: Colors.grey,
         selectedFontSize: 10,
         unselectedFontSize: 10,
         items: [

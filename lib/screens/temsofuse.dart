@@ -140,7 +140,7 @@ class TermsofUse extends StatelessWidget {
                     ),
                     _sectionTitle("8. Contact Us"),
                     _sectionContent(
-                      "If you have any questions about these Terms of Use, please contact us at peereess01@gmail.com.",
+                      "If you have any questions about these Terms of Use, please contact us at peereessofficial@gmail.com.",
                     ),
                   ],
                 ),

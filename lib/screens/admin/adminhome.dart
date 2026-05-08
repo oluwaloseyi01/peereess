@@ -86,7 +86,7 @@ class _AdminhomeState extends State<Adminhome> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xff9D6E2D),
         backgroundColor: Colors.white,
-        unselectedItemColor: AppColor.iconColor,
+        unselectedItemColor: Colors.amber,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
           BottomNavigationBarItem(

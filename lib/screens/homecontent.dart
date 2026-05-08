@@ -153,15 +153,12 @@ class _HomecontentState extends State<Homecontent> {
               Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
                     child: Row(
                       children: [
                         Expanded(
                           child: SizedBox(
-                            height: 35,
+                            height: 36,
                             child: TextField(
                               onTap: () =>
                                   Navigator.pushNamed(context, '/searchscreen'),
@@ -415,53 +412,8 @@ class _HomecontentState extends State<Homecontent> {
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                           vertical: 60),
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(24),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade200,
-                                                shape: BoxShape.circle,
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.grey.shade400
-                                                        .withOpacity(0.5),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 4),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: const Icon(
-                                                Icons
-                                                    .remove_shopping_cart_outlined,
-                                                size: 48,
-                                                color: Color(0xff9D6E2D),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            const Text(
-                                              'No products found',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              'Check back later for new items!',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w400,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                      child:
+                                          Center(child: LogoLoadingIndicator()),
                                     )
                                   else // show actual products
                                     MasonryGridView.builder(

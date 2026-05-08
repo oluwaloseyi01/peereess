@@ -108,7 +108,7 @@ class _SearchscreenState extends State<Searchscreen> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: Column(
               children: [
                 /// ================= TOP BAR =================

@@ -3,8 +3,10 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:peereess/core/app_button.dart';
 import 'package:peereess/core/app_images.dart';
 import 'package:peereess/core/num_extension.dart';
+import 'package:peereess/core/texttheme.dart';
 import 'package:peereess/provider/auth_provider.dart';
 import 'package:peereess/provider/notificationprovider.dart';
+import 'package:peereess/provider/themeprovider.dart';
 import 'package:peereess/screens/aboutpeereess.dart';
 import 'package:peereess/screens/addressbook.dart';
 import 'package:peereess/screens/changepassword.dart';
@@ -59,7 +61,7 @@ class _ProfileState extends State<Profile> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: EdgeInsets.fromLTRB(8, 0, 8, 8),
           child: SafeArea(
             child: SingleChildScrollView(
               child: Column(
@@ -467,3 +469,134 @@ class _ProfileState extends State<Profile> {
     );
   }
 }
+
+class _SettingsGroup extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsGroup({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: colors.card.withOpacity(0.92),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Column(children: children),
+    );
+  }
+}
+
+// // ── Normal tile ──────────────────────────────────────────────
+// class _Tile extends StatelessWidget {
+//   final IconData icon;
+//   final String label;
+//   final VoidCallback onTap;
+//   final bool showDivider;
+
+//   const _Tile({
+//     required this.icon,
+//     required this.label,
+//     required this.onTap,
+//     this.showDivider = true,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final colors = context.appColors;
+
+//     return Column(
+//       children: [
+//         InkWell(
+//           onTap: onTap,
+//           child: Padding(
+//             padding: const EdgeInsets.symmetric(vertical: 13),
+//             child: Row(
+//               children: [
+//                 Icon(icon, size: 20, color: colors.primary),
+//                 const SizedBox(width: 14),
+//                 Expanded(
+//                   child: Text(
+//                     label,
+//                     style: TextStyle(
+//                       fontSize: 14,
+//                       fontWeight: FontWeight.w500,
+//                       color: colors.textPrimary,
+//                     ),
+//                   ),
+//                 ),
+//                 Icon(
+//                   Icons.arrow_forward_ios,
+//                   size: 13,
+//                   color: colors.textSecondary,
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ),
+//         if (showDivider)
+//           Divider(height: 1, thickness: 0.5, color: colors.border),
+//       ],
+//     );
+//   }
+// }
+
+// // ── Switch tile ──────────────────────────────────────────────
+// class _SwitchTile extends StatelessWidget {
+//   final IconData icon;
+//   final String label;
+//   final bool value;
+//   final ValueChanged<bool> onChanged;
+//   final bool showDivider;
+
+//   const _SwitchTile({
+//     required this.icon,
+//     required this.label,
+//     required this.value,
+//     required this.onChanged,
+//     this.showDivider = true,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final colors = context.appColors;
+
+//     return Column(
+//       children: [
+//         Padding(
+//           padding: const EdgeInsets.symmetric(vertical: 4),
+//           child: Row(
+//             children: [
+//               Icon(icon, size: 20, color: colors.primary),
+//               const SizedBox(width: 14),
+//               Expanded(
+//                 child: Text(
+//                   label,
+//                   style: TextStyle(
+//                     fontSize: 14,
+//                     fontWeight: FontWeight.w500,
+//                     color: colors.textPrimary,
+//                   ),
+//                 ),
+//               ),
+//               Transform.scale(
+//                 scale: 0.85,
+//                 child: Switch(
+//                   value: value,
+//                   onChanged: onChanged,
+//                   activeColor: colors.primary,
+//                   activeTrackColor: colors.primaryLight.withOpacity(0.4),
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//         if (showDivider)
+//           Divider(height: 1, thickness: 0.5, color: colors.border),
+//       ],
+//     );
+//   }
+// }

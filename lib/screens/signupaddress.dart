@@ -14,7 +14,7 @@ class Signupaddress extends StatefulWidget {
 }
 
 class _SignupaddressState extends State<Signupaddress> {
-  final _formKey = GlobalKey<FormState>(); // ✅ ADD THIS
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,10 @@ class _SignupaddressState extends State<Signupaddress> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
+            colors: [
+              Color.fromARGB(255, 217, 194, 162),
+              Colors.white,
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -34,7 +37,6 @@ class _SignupaddressState extends State<Signupaddress> {
           child: SafeArea(
             child: SingleChildScrollView(
               child: Form(
-                // ✅ WRAP WITH FORM
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,8 +44,10 @@ class _SignupaddressState extends State<Signupaddress> {
                     Align(
                       alignment: Alignment.topRight,
                       child: GestureDetector(
-                        onTap: () =>
-                            Navigator.pushReplacementNamed(context, '/home'),
+                        onTap: () => Navigator.pushReplacementNamed(
+                          context,
+                          '/home',
+                        ),
                         child: const Text(
                           "Skip",
                           style: TextStyle(
@@ -81,10 +85,7 @@ class _SignupaddressState extends State<Signupaddress> {
             child: AppButtons(
               text: "Save address",
               onPressed: () async {
-                // ✅ VALIDATE FIRST
-                if (!_formKey.currentState!.validate()) {
-                  return; // stop if invalid
-                }
+                if (!_formKey.currentState!.validate()) return;
 
                 final auth = context.read<AuthProvider>();
 
@@ -113,7 +114,7 @@ class _SignupaddressState extends State<Signupaddress> {
                           color: Color(0xFF6B4A1B),
                         ),
                       ),
-                      content: Column(
+                      content: const Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
@@ -121,7 +122,7 @@ class _SignupaddressState extends State<Signupaddress> {
                             size: 52,
                             color: Colors.brown,
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           Text(
                             "Your delivery information has been saved successfully.",
                             textAlign: TextAlign.center,
@@ -132,11 +133,17 @@ class _SignupaddressState extends State<Signupaddress> {
                       actions: [
                         TextButton(
                           onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.push(
-                                context,
+                            Navigator.of(context).pop();
+
+                            Future.microtask(() {
+                              if (!context.mounted) return;
+
+                              Navigator.of(context).pushReplacement(
                                 MaterialPageRoute(
-                                    builder: (context) => WelcomeNotePage()));
+                                  builder: (_) => WelcomeNotePage(),
+                                ),
+                              );
+                            });
                           },
                           child: const Text(
                             "OK",
@@ -168,10 +175,19 @@ class _SignupaddressState extends State<Signupaddress> {
                       ),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => WelcomeNotePage())),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+
+                            Future.microtask(() {
+                              if (!context.mounted) return;
+
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => WelcomeNotePage(),
+                                ),
+                              );
+                            });
+                          },
                           child: const Text(
                             "OK",
                             style: TextStyle(color: Color(0xff9D6E2D)),

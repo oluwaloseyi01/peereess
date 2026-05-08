@@ -124,7 +124,7 @@ class _SellerhomeState extends State<Sellerhome> {
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
         selectedItemColor: const Color(0xff9D6E2D),
-        unselectedItemColor: AppColor.iconColor,
+        unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
         iconSize: 20,
         selectedFontSize: 10,

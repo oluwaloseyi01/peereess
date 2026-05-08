@@ -607,14 +607,14 @@ class _AddtocartWidgetState extends State<AddtocartWidget>
             ),
             Text(
               " selected",
-              style: TextStyle(fontSize: 12, color: AppColor.grey),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             10.getWidthWhiteSpacing,
             const Spacer(),
             if (totalPrice > 0) ...[
               Text(
                 "Amount:",
-                style: TextStyle(fontSize: 12, color: AppColor.grey),
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               Text(
                 " ₦${formatter.format(totalPrice)}",
@@ -635,7 +635,7 @@ class _AddtocartWidgetState extends State<AddtocartWidget>
             children: [
               const Text(
                 "shipping fee:",
-                style: TextStyle(fontSize: 11, color: AppColor.grey),
+                style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
               5.getWidthWhiteSpacing,
               Column(
@@ -658,7 +658,7 @@ class _AddtocartWidgetState extends State<AddtocartWidget>
               const Spacer(),
               Text(
                 "Total: ",
-                style: TextStyle(fontSize: 12, color: AppColor.grey),
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               Text(
                 "₦${formatter.format(totalPrice + effectiveDeliveryFee)}",

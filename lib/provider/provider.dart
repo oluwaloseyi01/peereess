@@ -8,6 +8,7 @@ import 'package:peereess/provider/productview.dart';
 
 import 'package:peereess/provider/refundservice.dart';
 import 'package:peereess/provider/spinservice.dart';
+import 'package:peereess/provider/themeprovider.dart';
 import 'package:peereess/provider/withdrawservice.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
@@ -92,5 +93,6 @@ class AppProvider {
     ChangeNotifierProvider(
       create: (_) => AdminChatProvider(client: AppwriteConfig.client),
     ),
+    // ChangeNotifierProvider(create: (_) => ThemeProvider()),
   ];
 }

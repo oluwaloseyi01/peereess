@@ -300,7 +300,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
               // ── TOP BAR ──────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
                   child: GestureDetector(
                     onTap: () {
                       Navigator.push(

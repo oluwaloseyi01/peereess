@@ -584,7 +584,7 @@ class _SignupState extends State<Signup> {
                         ),
                         8.getHeightWhiteSpacing,
                         const Text(
-                          "let's make you a peereess member",
+                          "Let's make you a peereess member",
                           style: TextStyle(
                             fontSize: 15,
                             fontFamily: 'poppins',

@@ -315,7 +315,7 @@ class Adminhomecontent extends StatelessWidget {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(icon, color: AppColor.iconColor, size: 28),
+                  Icon(icon, color: Colors.amber, size: 28),
                   if (badgeCount != null && badgeCount > 0)
                     Positioned(
                       top: -4,

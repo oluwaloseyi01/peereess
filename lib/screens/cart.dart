@@ -130,7 +130,7 @@ class _CartState extends State<Cart> {
             children: [
               // ── PINNED HEADER (never scrolls) ──────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                padding: const EdgeInsets.fromLTRB(0, 0, 8, 0),
                 child: Row(
                   children: [
                     10.getWidthWhiteSpacing,

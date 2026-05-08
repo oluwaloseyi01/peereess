@@ -136,7 +136,7 @@ class Privacypolicy extends StatelessWidget {
                     ),
                     _sectionTitle("7. Contact Us"),
                     _sectionContent(
-                      "If you have questions about this Privacy Policy or how we handle your data, please contact us at peereess01@gmail.com.\n\nBy using the Peereess app, you agree to the terms of this Privacy Policy.",
+                      "If you have questions about this Privacy Policy or how we handle your data, please contact us at peereessofficial@gmail.com.\n\nBy using the Peereess app, you agree to the terms of this Privacy Policy.",
                     ),
                   ],
                 ),
