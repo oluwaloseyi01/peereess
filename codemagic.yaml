@@ -2,15 +2,18 @@
   ios-workflow:
     name: iOS Workflow
 
-    integrations:
-      app_store_connect: CodeMagic
-
     environment:
       flutter: stable
       xcode: latest
+
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.peereess.app
+
+      vars:
+        APP_STORE_CONNECT_ISSUER_ID: Encrypted(...)
+        APP_STORE_CONNECT_KEY_IDENTIFIER: Encrypted(...)
+        APP_STORE_CONNECT_PRIVATE_KEY: Encrypted(...)
 
     scripts:
       - name: Flutter pub get
@@ -27,14 +30,10 @@
 
       - name: Build IPA
         script: |
-          flutter build ios --release --no-codesign
-          xcode-project build-ipa \
-            --workspace ios/Runner.xcworkspace \
-            --scheme Runner
+          flutter build ipa --release
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - build/ios/archive/*.xcarchive
 
     publishing:
       app_store_connect:
