@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "733849395047",
+    "project_id": "peereess",
+    "storage_bucket": "peereess.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733849395047:android:ae96a5687c8c131e1dd9c2",
+        "android_client_info": {
+          "package_name": "com.peereess.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5-CSVvaimEMWzIn2T_ZPJftT6XnZcke8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
