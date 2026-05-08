@@ -152,7 +152,6 @@ class _HomecontentState extends State<Homecontent> {
             children: [
               Column(
                 children: [
-                  8.getHeightWhiteSpacing,
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
