@@ -186,7 +186,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _pickImage({required bool fromCamera}) async {
     try {
-      if (!fromCamera) {
+      if (!fromCamera && Platform.isAndroid) {
         final LostDataResponse response = await _picker.retrieveLostData();
         if (response.file != null && mounted) {
           setState(() => _selectedImage = File(response.file!.path));
@@ -205,7 +205,7 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() => _selectedImage = File(pickedFile.path));
       }
     } catch (e) {
-      debugPrint("Image pick error: $e");
+      // debugPrint("Image pick error: $e");
     }
   }
 

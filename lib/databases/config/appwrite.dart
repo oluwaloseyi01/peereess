@@ -64,21 +64,21 @@ class AppwriteConfig {
       final fcmToken = await FirebaseMessaging.instance.getToken();
 
       if (fcmToken == null) {
-        print('⚠️ FCM token is null');
+        // print('⚠️ FCM token is null');
         return;
       }
 
-      print('✅ FCM Token: $fcmToken');
+      // print('✅ FCM Token: $fcmToken');
 
       // Remove any existing targets with old/expired tokens first
       try {
         final user = await account.get();
         for (final target in user.targets) {
           await account.deletePushTarget(targetId: target.$id);
-          print('🗑️ Removed old push target: ${target.$id}');
+          // print('🗑️ Removed old push target: ${target.$id}');
         }
       } catch (e) {
-        print('⚠️ Could not clean old targets: $e');
+        // print('⚠️ Could not clean old targets: $e');
       }
 
       // Register fresh token
@@ -88,7 +88,7 @@ class AppwriteConfig {
         providerId: fcmProviderId,
       );
 
-      print('✅ Device registered with Appwrite!');
+      // print('✅ Device registered with Appwrite!');
 
       // Listen for future token refreshes
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
@@ -102,15 +102,15 @@ class AppwriteConfig {
             identifier: newToken,
             providerId: fcmProviderId,
           );
-          print('✅ Push token refreshed in Appwrite');
+          // print('✅ Push token refreshed in Appwrite');
         } catch (e) {
-          print('⚠️ Failed to refresh push token: $e');
+          // print('⚠️ Failed to refresh push token: $e');
         }
       });
     } on AppwriteException catch (e) {
-      print('❌ Appwrite error: ${e.message}');
+      // print('❌ Appwrite error: ${e.message}');
     } catch (e) {
-      print('❌ Error registering device: $e');
+      // print('❌ Error registering device: $e');
     }
   }
 
@@ -119,7 +119,7 @@ class AppwriteConfig {
     try {
       final fcmToken = await FirebaseMessaging.instance.getToken();
       if (fcmToken == null) {
-        print('⚠️ No FCM token found');
+        // print('⚠️ No FCM token found');
         return;
       }
 
@@ -127,14 +127,14 @@ class AppwriteConfig {
       for (final target in user.targets) {
         if (target.identifier == fcmToken) {
           await account.deletePushTarget(targetId: target.$id);
-          print('✅ Device unregistered from Appwrite');
+          // print('✅ Device unregistered from Appwrite');
           break;
         }
       }
     } on AppwriteException catch (e) {
-      print('❌ Unregister error: ${e.message}');
+      // print('❌ Unregister error: ${e.message}');
     } catch (e) {
-      print('❌ Unregister error: $e');
+      // print('❌ Unregister error: $e');
     }
   }
 }
