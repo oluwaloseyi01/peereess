@@ -215,11 +215,22 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
 
   Future<void> _pickImage({required bool fromCamera}) async {
     try {
+      if (!fromCamera) {
+        final LostDataResponse response = await _picker.retrieveLostData();
+        if (response.file != null && mounted) {
+          setState(() => _selectedImage = File(response.file!.path));
+          return;
+        }
+      }
+
       final XFile? pickedFile = await _picker.pickImage(
         source: fromCamera ? ImageSource.camera : ImageSource.gallery,
-        imageQuality: 70,
+        imageQuality: 50,
+        maxWidth: 1024,
+        maxHeight: 1024,
       );
-      if (pickedFile != null && !_isDisposed) {
+
+      if (pickedFile != null && mounted) {
         setState(() => _selectedImage = File(pickedFile.path));
       }
     } catch (e) {

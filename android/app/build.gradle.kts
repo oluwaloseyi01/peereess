@@ -28,7 +28,6 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
     }
 
     compileOptions {
@@ -63,6 +62,10 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
         }
+    }
+
+    dexOptions {
+        javaMaxHeapSize = "4g"
     }
 }
 

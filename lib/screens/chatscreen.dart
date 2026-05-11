@@ -139,7 +139,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _sendMessage({File? imageFile}) {
+  Future<void> _sendMessage({File? imageFile}) async {
     final text = _messageCtrl.text.trim();
     if (text.isEmpty && imageFile == null) return;
 
@@ -155,7 +155,7 @@ class _ChatScreenState extends State<ChatScreen> {
       senderName = name.isNotEmpty ? name : 'Customer';
     }
 
-    _chatProvider.sendMessage(
+    await _chatProvider.sendMessage(
       senderId: widget.userId,
       receiverId: _receiverId,
       productId: widget.productId,
@@ -186,11 +186,22 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _pickImage({required bool fromCamera}) async {
     try {
+      if (!fromCamera) {
+        final LostDataResponse response = await _picker.retrieveLostData();
+        if (response.file != null && mounted) {
+          setState(() => _selectedImage = File(response.file!.path));
+          return;
+        }
+      }
+
       final XFile? pickedFile = await _picker.pickImage(
         source: fromCamera ? ImageSource.camera : ImageSource.gallery,
-        imageQuality: 70,
+        imageQuality: 50,
+        maxWidth: 1024,
+        maxHeight: 1024,
       );
-      if (pickedFile != null && !_isDisposed) {
+
+      if (pickedFile != null && mounted) {
         setState(() => _selectedImage = File(pickedFile.path));
       }
     } catch (e) {
