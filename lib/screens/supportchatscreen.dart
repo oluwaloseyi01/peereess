@@ -7,6 +7,7 @@ import 'package:peereess/core/num_extension.dart';
 import 'package:peereess/model/supportchat_model.dart';
 import 'package:peereess/provider/auth_provider.dart';
 import 'package:peereess/provider/supportchat_provider.dart';
+import 'package:peereess/screens/widgets/inappcamera.dart';
 import 'package:peereess/screens/widgets/loadingwidget.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -215,7 +216,19 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
 
   Future<void> _pickImage({required bool fromCamera}) async {
     try {
-      if (!fromCamera && Platform.isAndroid) {
+      if (fromCamera) {
+        final File? photo = await Navigator.push<File>(
+          context,
+          MaterialPageRoute(builder: (_) => const InAppCamera()),
+        );
+        if (photo != null && mounted) {
+          setState(() => _selectedImage = photo);
+        }
+        return;
+      }
+
+      // Gallery picker
+      if (Platform.isAndroid) {
         final LostDataResponse response = await _picker.retrieveLostData();
         if (response.file != null && mounted) {
           setState(() => _selectedImage = File(response.file!.path));
@@ -224,7 +237,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
       }
 
       final XFile? pickedFile = await _picker.pickImage(
-        source: fromCamera ? ImageSource.camera : ImageSource.gallery,
+        source: ImageSource.gallery,
         imageQuality: 50,
         maxWidth: 1024,
         maxHeight: 1024,
@@ -234,7 +247,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
         setState(() => _selectedImage = File(pickedFile.path));
       }
     } catch (e) {
-      // debugPrint("Image pick error: $e");
+      debugPrint("Image pick error: $e");
     }
   }
 
@@ -250,12 +263,17 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
           ),
           body: GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: Center(
+            child: SizedBox.expand(
               child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
                 child: CachedNetworkImage(
                   imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
                   placeholder: (context, url) => const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                    child: LogoLoadingIndicator(),
                   ),
                   errorWidget: (context, url, error) => const Icon(
                     Icons.broken_image,
@@ -506,9 +524,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
                                         height: 200,
                                         color: Colors.grey[200],
                                         child: const Center(
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
+                                          child: LogoLoadingIndicator(),
                                         ),
                                       ),
                                       errorWidget: (context, url, error) =>

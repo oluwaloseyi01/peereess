@@ -39,10 +39,12 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
   late final Homecontent _homeContent;
 
+  // ✅ Save reference so dispose() never calls context.read
+  SpinService? _spinService;
+
   int _previousIndex = 0;
 
   void _onTabTapped(int index, HomeProvider homeProvider) {
-    // Single tap on home while already on home — just refresh
     if (index == 0 && homeProvider.currentIndex == 0) {
       _shakeControllers[0].forward(from: 0);
       _homeRefreshNotifier.value++;
@@ -105,7 +107,10 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
       context.read<ProductProvider>().loadUserLikes(currentUserId);
 
+      // ✅ Save reference before using
       final spin = context.read<SpinService>();
+      _spinService = spin;
+
       spin.fetchSpinConfig().then((_) {
         if (!mounted) return;
         spin.subscribeRealtime();
@@ -128,8 +133,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     }
     _homeRefreshNotifier.dispose();
 
-    if (_spinListenerAdded) {
-      context.read<SpinService>().removeListener(_onSpinChanged);
+    // ✅ Use saved reference — never call context.read() in dispose()
+    if (_spinListenerAdded && _spinService != null) {
+      _spinService!.removeListener(_onSpinChanged);
     }
 
     super.dispose();
@@ -137,7 +143,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
   void _onSpinChanged() {
     if (!mounted) return;
-    final spin = context.read<SpinService>();
+    // ✅ Use saved reference instead of context.read
+    final spin = _spinService;
+    if (spin == null) return;
     if (spin.spinEnabled && !_spinModalShown) {
       _spinModalShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {

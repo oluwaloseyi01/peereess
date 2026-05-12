@@ -164,11 +164,16 @@ class AuthProvider extends ChangeNotifier {
       clearError();
       notifyListeners();
 
+      // ✅ Clear any existing session before registering
+      try {
+        await AppwriteConfig.account.deleteSession(sessionId: 'current');
+      } catch (_) {
+        // No active session — that's fine, continue
+      }
+
       final String email = emailController.text.trim();
       final String fullName = fullNameController.text.trim();
       final String password = passwordController.text.trim();
-
-      // debugPrint('📧 REGISTER: Starting for $email');
 
       // 1️⃣ Check email via server
       final checkResult = await _callFunction({
@@ -181,7 +186,6 @@ class AuthProvider extends ChangeNotifier {
       }
 
       // 2️⃣ Create Appwrite auth account
-      // ✅ isAuthAction: true — rethrows 400/409 so the real error shows to the user
       final user = await ApiHelper.guard(
         () => AppwriteConfig.account.create(
           userId: ID.unique(),
@@ -229,7 +233,6 @@ class AuthProvider extends ChangeNotifier {
         arguments: {'email': email, 'password': password, 'userId': user.$id},
       );
     } catch (e, st) {
-      // debugPrint('❌ REGISTER ERROR: $e\n$st');
       if (!context.mounted) return;
       ErrorNotifier.show(context, AppError.from(e).message);
     } finally {
@@ -328,6 +331,13 @@ class AuthProvider extends ChangeNotifier {
       clearError();
       notifyListeners();
 
+      // ✅ Clear any existing session before creating a new one
+      try {
+        await AppwriteConfig.account.deleteSession(sessionId: 'current');
+      } catch (_) {
+        // No active session — that's fine, continue
+      }
+
       // ✅ isAuthAction: true — rethrows 401 so "Invalid email or password" shows
       await ApiHelper.guard(
         () => AppwriteConfig.account.createEmailPasswordSession(
@@ -343,18 +353,15 @@ class AuthProvider extends ChangeNotifier {
       if (currentUser == null) return;
 
       _userId = currentUser.$id;
-      // debugPrint('✅ LOGIN: Session created for userId: $_userId');
 
       final results = await Future.wait([
         _callFunction({'action': 'getProfile', 'userId': _userId}),
         _callFunction({'action': 'getRole', 'userId': _userId}),
-        // ✅ Update last active on login
         _callFunction({'action': 'updateLastActive', 'userId': _userId}),
       ]);
 
       final profileResult = results[0];
       final roleResult = results[1];
-      // results[2] is lastActive update (we don't need to check it)
 
       if (profileResult['status'] != true) {
         throw Exception(profileResult['message'] ?? 'User profile not found.');
@@ -368,8 +375,6 @@ class AuthProvider extends ChangeNotifier {
           ? (roleResult['data']['role'] as String? ?? 'user').toLowerCase()
           : 'user';
 
-      // debugPrint("✅ LOGIN: role='$userType' rowId='$_rowId'");
-
       isLoggedIn = true;
       _populateControllers();
       _startSessionTimer(context);
@@ -379,7 +384,6 @@ class AuthProvider extends ChangeNotifier {
         (_) => _navigateByRole(context),
       );
     } catch (e, st) {
-      // debugPrint('❌ LOGIN ERROR: $e\n$st');
       if (!context.mounted) return;
       ErrorNotifier.show(context, AppError.from(e).message);
     } finally {
@@ -692,6 +696,7 @@ class AuthProvider extends ChangeNotifier {
       }
 
       _clearMemory();
+      clearControllers();
 
       if (!context.mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -842,7 +847,7 @@ class AuthProvider extends ChangeNotifier {
   void clearControllers() {
     errorMessage = null;
     fullNameController.clear();
-    emailController.clear();
+
     statesController.clear();
     deliveryAddressController.clear();
     passwordController.clear();
@@ -857,7 +862,7 @@ class AuthProvider extends ChangeNotifier {
     _cancelSessionTimer();
     _connectivitySubscription.cancel();
     fullNameController.dispose();
-    emailController.dispose();
+
     statesController.dispose();
     deliveryAddressController.dispose();
     passwordController.dispose();

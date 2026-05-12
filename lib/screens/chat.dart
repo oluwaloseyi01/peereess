@@ -23,6 +23,7 @@ class Chat extends StatefulWidget {
 
 class _ChatState extends State<Chat> with WidgetsBindingObserver {
   Timer? _refreshTimer;
+  bool _isDeleting = false;
 
   bool get _isAdmin => widget.role == 'admin';
 
@@ -75,6 +76,13 @@ class _ChatState extends State<Chat> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  Future<void> _deleteChat(String productId) async {
+    if (!mounted) return;
+    setState(() => _isDeleting = true);
+    await context.read<ChatListProvider>().deleteChat(productId, widget.userId);
+    if (mounted) setState(() => _isDeleting = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatListProvider = context.watch<ChatListProvider>();
@@ -100,431 +108,473 @@ class _ChatState extends State<Chat> with WidgetsBindingObserver {
     }
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── PINNED HEADER (never scrolls) ───────────────────
-              Padding(
-                padding: const EdgeInsets.only(left: 12, top: 0, right: 12),
-                child: Row(
-                  children: [
-                    Text(
-                      _isAdmin ? "Customer Messages" : "Messages",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontFamily: 'poppins',
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (!_isAdmin)
-                      GestureDetector(
-                        onTap: () => Navigator.pushNamed(context, "/save"),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Container(
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Color.fromARGB(255, 236, 216, 191),
-                              ),
-                              child: const Padding(
-                                padding: EdgeInsets.all(6.0),
-                                child: Icon(
-                                  Icons.favorite_outline,
-                                  size: 18,
-                                  color: Color(0xff9D6E2D),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 2,
-                              right: 2,
-                              child: Consumer<ProductProvider>(
-                                builder: (context, provider, _) {
-                                  final userId = authProvider.userId;
-                                  if (userId == null) return const SizedBox();
-                                  final hasLikes =
-                                      provider.likedProductIds.isNotEmpty;
-                                  if (!hasLikes) return const SizedBox();
-                                  return Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.pink,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    constraints: const BoxConstraints(
-                                      minWidth: 8,
-                                      minHeight: 8,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+      body: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
-
-              // ── SCROLLABLE BODY (search bar + chat list scroll under header) ──
-              Expanded(
-                child: chatList.isEmpty
-                    ? isLoading
-                        ? const Center(child: LogoLoadingIndicator())
-                        : _buildEmptyState()
-                    : RefreshIndicator(
-                        color: const Color(0xff9D6E2D),
-                        backgroundColor: const Color.fromARGB(
-                          255,
-                          236,
-                          216,
-                          191,
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── PINNED HEADER (never scrolls) ───────────────────
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12, top: 0, right: 12),
+                    child: Row(
+                      children: [
+                        Text(
+                          _isAdmin ? "Customer Messages" : "Messages",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'poppins',
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                        onRefresh: () async {
-                          await context.read<ChatListProvider>().fetchChats(
-                                widget.userId,
-                                isAdmin: _isAdmin,
-                              );
-                        },
-                        child: ListView(
-                          padding: EdgeInsets.zero,
-                          children: [
-                            // ── Search bar (scrolls) ─────────────
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              child: SizedBox(
-                                height: 38,
-                                child: TextField(
-                                  onChanged: (value) {
-                                    chatListProvider.searchChats(value);
-                                  },
-                                  decoration: InputDecoration(
-                                    hintText: _isAdmin
-                                        ? "Search by customer or product"
-                                        : "Search chats",
-                                    hintStyle: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey,
-                                    ),
-                                    prefixIcon: const Icon(
-                                      IconsaxPlusLinear.search_normal_1,
+                        const Spacer(),
+                        if (!_isAdmin)
+                          GestureDetector(
+                            onTap: () => Navigator.pushNamed(context, "/save"),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color.fromARGB(255, 236, 216, 191),
+                                  ),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(6.0),
+                                    child: Icon(
+                                      Icons.favorite_outline,
+                                      size: 18,
                                       color: Color(0xff9D6E2D),
-                                      size: 19,
-                                    ),
-                                    filled: true,
-                                    fillColor: const Color.fromARGB(
-                                        255, 233, 226, 226),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide.none,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide.none,
-                                      borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
                                 ),
-                              ),
+                                Positioned(
+                                  top: 2,
+                                  right: 2,
+                                  child: Consumer<ProductProvider>(
+                                    builder: (context, provider, _) {
+                                      final userId = authProvider.userId;
+                                      if (userId == null)
+                                        return const SizedBox();
+                                      final hasLikes =
+                                          provider.likedProductIds.isNotEmpty;
+                                      if (!hasLikes) return const SizedBox();
+                                      return Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.pink,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 8,
+                                          minHeight: 8,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
+                      ],
+                    ),
+                  ),
 
-                            // ── Chat items ───────────────────────
-                            ...List.generate(chatList.length, (index) {
-                              final ChatListModel chat = chatList[index];
-
-                              final t = chat.lastMessageAt;
-                              final formattedTime =
-                                  "${t.day}/${t.month} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}";
-
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 12),
-                                child: Column(
-                                  children: [
-                                    Slidable(
-                                      key: Key(chat.productId),
-                                      endActionPane: ActionPane(
-                                        motion: const DrawerMotion(),
-                                        extentRatio: 0.25,
-                                        children: [
-                                          SlidableAction(
-                                            onPressed: (_) async {
-                                              final confirmed =
-                                                  await showDialog<bool>(
-                                                context: context,
-                                                builder: (_) => AlertDialog(
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            16),
-                                                  ),
-                                                  title: const Text(
-                                                    "Delete Chat",
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Color(0xFF6B4A1B),
-                                                    ),
-                                                  ),
-                                                  content: Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Icon(
-                                                        Icons.delete_outline,
-                                                        size: 52,
-                                                        color: Colors
-                                                            .brown.shade200,
-                                                      ),
-                                                      const SizedBox(
-                                                          height: 12),
-                                                      Text(
-                                                        "Are you sure you want to delete this chat?",
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: TextStyle(
-                                                          fontSize: 13,
-                                                          color: Colors
-                                                              .brown.shade600,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context, false),
-                                                      child: const Text(
-                                                        "Cancel",
-                                                        style: TextStyle(
-                                                          color:
-                                                              Color(0xff9D6E2D),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context, true),
-                                                      child: const Text(
-                                                        "Delete",
-                                                        style: TextStyle(
-                                                          color: Colors.red,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                              if (confirmed ?? false) {
-                                                chatListProvider.deleteChat(
-                                                  chat.productId,
-                                                  widget.userId,
-                                                );
-                                              }
-                                            },
-                                            backgroundColor: Colors.red,
-                                            foregroundColor: Colors.white,
-                                            icon: IconsaxPlusLinear.trash,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Material(
-                                        elevation: 2,
-                                        borderRadius: BorderRadius.circular(8),
-                                        color: const Color.fromARGB(
+                  // ── SCROLLABLE BODY ──────────────────────────────────
+                  Expanded(
+                    child: chatList.isEmpty
+                        ? isLoading
+                            ? const Center(child: LogoLoadingIndicator())
+                            : _buildEmptyState()
+                        : RefreshIndicator(
+                            color: const Color(0xff9D6E2D),
+                            backgroundColor: const Color.fromARGB(
+                              255,
+                              236,
+                              216,
+                              191,
+                            ),
+                            onRefresh: () async {
+                              await context.read<ChatListProvider>().fetchChats(
+                                    widget.userId,
+                                    isAdmin: _isAdmin,
+                                  );
+                            },
+                            child: ListView(
+                              padding: EdgeInsets.zero,
+                              children: [
+                                // ── Search bar ───────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  child: SizedBox(
+                                    height: 38,
+                                    child: TextField(
+                                      onChanged: (value) {
+                                        chatListProvider.searchChats(value);
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: _isAdmin
+                                            ? "Search by customer or product"
+                                            : "Search chats",
+                                        hintStyle: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey,
+                                        ),
+                                        prefixIcon: const Icon(
+                                          IconsaxPlusLinear.search_normal_1,
+                                          color: Color(0xff9D6E2D),
+                                          size: 19,
+                                        ),
+                                        filled: true,
+                                        fillColor: const Color.fromARGB(
                                             255, 233, 226, 226),
-                                        child: InkWell(
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: BorderSide.none,
                                           borderRadius:
-                                              BorderRadius.circular(8),
-                                          onTap: () {
-                                            Navigator.pushNamed(
-                                              context,
-                                              "/chat",
-                                              arguments: {
-                                                "productId": chat.productId,
-                                                "productTitle":
-                                                    chat.productTitle,
-                                                "userId": widget.userId,
-                                                "imageUrl": chat.imageUrl,
-                                                "firstVariantPrice":
-                                                    chat.firstVariantPrice,
-                                                "role": widget.role,
-                                                "buyerId": chat.senderId,
-                                                "buyerName": chat.senderName,
-                                              },
-                                            );
-                                          },
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 10,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                CircleAvatar(
-                                                  radius: 22,
-                                                  backgroundColor:
-                                                      Colors.grey.shade300,
-                                                  child: chat.imageUrl != null
-                                                      ? ClipOval(
-                                                          child:
-                                                              CachedNetworkImage(
-                                                            imageUrl:
-                                                                chat.imageUrl!,
-                                                            width: 44,
-                                                            height: 44,
-                                                            fit: BoxFit.cover,
-                                                            placeholder:
-                                                                (context,
-                                                                        url) =>
-                                                                    Container(
-                                                              color: Colors.grey
-                                                                  .shade300,
-                                                            ),
-                                                            errorWidget:
-                                                                (context, url,
-                                                                        error) =>
-                                                                    const Icon(
-                                                              Icons.store,
-                                                              size: 20,
-                                                            ),
-                                                          ),
-                                                        )
-                                                      : const Icon(
-                                                          Icons.store,
-                                                          size: 20,
+                                              BorderRadius.circular(10),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide.none,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // ── Chat items ───────────────────────
+                                ...List.generate(chatList.length, (index) {
+                                  final ChatListModel chat = chatList[index];
+
+                                  final t = chat.lastMessageAt;
+                                  final formattedTime =
+                                      "${t.day}/${t.month} ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}";
+
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12),
+                                    child: Column(
+                                      children: [
+                                        Slidable(
+                                          key: Key(chat.productId),
+                                          endActionPane: ActionPane(
+                                            motion: const DrawerMotion(),
+                                            extentRatio: 0.25,
+                                            children: [
+                                              SlidableAction(
+                                                onPressed: (_) async {
+                                                  final confirmed =
+                                                      await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (_) => AlertDialog(
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(16),
+                                                      ),
+                                                      title: const Text(
+                                                        "Delete Chat",
+                                                        style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              Color(0xFF6B4A1B),
                                                         ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Row(
+                                                      ),
+                                                      content: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
                                                         children: [
-                                                          Expanded(
-                                                            child: Text(
-                                                              _isAdmin &&
-                                                                      chat.senderName !=
-                                                                          null
-                                                                  ? '${chat.senderName} • ${chat.productTitle}'
-                                                                  : chat
-                                                                      .productTitle,
-                                                              maxLines: 1,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              style:
-                                                                  const TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                fontSize: 14,
-                                                              ),
-                                                            ),
+                                                          Icon(
+                                                            Icons
+                                                                .delete_outline,
+                                                            size: 52,
+                                                            color: Colors
+                                                                .brown.shade200,
                                                           ),
+                                                          const SizedBox(
+                                                              height: 12),
                                                           Text(
-                                                            formattedTime,
-                                                            style:
-                                                                const TextStyle(
-                                                              fontSize: 10,
-                                                              color:
-                                                                  Colors.grey,
+                                                            "Are you sure you want to delete this chat?",
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            style: TextStyle(
+                                                              fontSize: 13,
+                                                              color: Colors
+                                                                  .brown
+                                                                  .shade600,
                                                             ),
                                                           ),
                                                         ],
                                                       ),
-                                                      const SizedBox(height: 4),
-                                                      if (_isAdmin)
-                                                        Text(
-                                                          chat.productTitle,
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style: TextStyle(
-                                                            fontSize: 11,
-                                                            color: Colors
-                                                                .brown.shade400,
-                                                            fontWeight:
-                                                                FontWeight.w500,
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  false),
+                                                          child: const Text(
+                                                            "Cancel",
+                                                            style: TextStyle(
+                                                              color: Color(
+                                                                  0xff9D6E2D),
+                                                            ),
                                                           ),
                                                         ),
-                                                      Text(
-                                                        chat.lastMessage,
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                          fontSize: 13,
-                                                          color: Colors
-                                                              .grey.shade600,
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  true),
+                                                          child: const Text(
+                                                            "Delete",
+                                                            style: TextStyle(
+                                                              color: Colors.red,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                  if (confirmed ?? false) {
+                                                    await _deleteChat(
+                                                        chat.productId);
+                                                  }
+                                                },
+                                                backgroundColor: Colors.red,
+                                                foregroundColor: Colors.white,
+                                                icon: IconsaxPlusLinear.trash,
+                                              ),
+                                            ],
+                                          ),
+                                          child: Material(
+                                            elevation: 2,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            color: const Color.fromARGB(
+                                                255, 233, 226, 226),
+                                            child: InkWell(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              onTap: () {
+                                                Navigator.pushNamed(
+                                                  context,
+                                                  "/chat",
+                                                  arguments: {
+                                                    "productId": chat.productId,
+                                                    "productTitle":
+                                                        chat.productTitle,
+                                                    "userId": widget.userId,
+                                                    "imageUrl": chat.imageUrl,
+                                                    "firstVariantPrice":
+                                                        chat.firstVariantPrice,
+                                                    "role": widget.role,
+                                                    "buyerId": chat.senderId,
+                                                    "buyerName":
+                                                        chat.senderName,
+                                                  },
+                                                );
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 10,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    CircleAvatar(
+                                                      radius: 22,
+                                                      backgroundColor:
+                                                          Colors.grey.shade300,
+                                                      child: chat.imageUrl !=
+                                                              null
+                                                          ? ClipOval(
+                                                              child:
+                                                                  CachedNetworkImage(
+                                                                imageUrl: chat
+                                                                    .imageUrl!,
+                                                                width: 44,
+                                                                height: 44,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                placeholder:
+                                                                    (context,
+                                                                            url) =>
+                                                                        Container(
+                                                                  color: Colors
+                                                                      .grey
+                                                                      .shade300,
+                                                                ),
+                                                                errorWidget: (context,
+                                                                        url,
+                                                                        error) =>
+                                                                    const Icon(
+                                                                  Icons.store,
+                                                                  size: 20,
+                                                                ),
+                                                              ),
+                                                            )
+                                                          : const Icon(
+                                                              Icons.store,
+                                                              size: 20,
+                                                            ),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Row(
+                                                            children: [
+                                                              Expanded(
+                                                                child: Text(
+                                                                  _isAdmin &&
+                                                                          chat.senderName !=
+                                                                              null
+                                                                      ? '${chat.senderName} • ${chat.productTitle}'
+                                                                      : chat
+                                                                          .productTitle,
+                                                                  maxLines: 1,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                formattedTime,
+                                                                style:
+                                                                    const TextStyle(
+                                                                  fontSize: 10,
+                                                                  color: Colors
+                                                                      .grey,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 4),
+                                                          if (_isAdmin)
+                                                            Text(
+                                                              chat.productTitle,
+                                                              maxLines: 1,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style: TextStyle(
+                                                                fontSize: 11,
+                                                                color: Colors
+                                                                    .brown
+                                                                    .shade400,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                            ),
+                                                          Text(
+                                                            chat.lastMessage,
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style: TextStyle(
+                                                              fontSize: 13,
+                                                              color: Colors.grey
+                                                                  .shade600,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    if (chat.unreadCount > 0)
+                                                      Container(
+                                                        margin: const EdgeInsets
+                                                            .only(left: 8),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 7,
+                                                          vertical: 4,
+                                                        ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.red,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(20),
+                                                        ),
+                                                        child: Text(
+                                                          chat.unreadCount
+                                                              .toString(),
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 11,
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
                                                         ),
                                                       ),
-                                                    ],
-                                                  ),
+                                                  ],
                                                 ),
-                                                if (chat.unreadCount > 0)
-                                                  Container(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                            left: 8),
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                      horizontal: 7,
-                                                      vertical: 4,
-                                                    ),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.red,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              20),
-                                                    ),
-                                                    child: Text(
-                                                      chat.unreadCount
-                                                          .toString(),
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
+                                        const SizedBox(height: 6),
+                                      ],
                                     ),
-                                    const SizedBox(height: 6),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+
+          // ── Delete loading overlay ────────────────────────────────
+          if (_isDeleting)
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: const Center(
+                child: LogoLoadingIndicator(),
+              ),
+            ),
+        ],
       ),
     );
   }

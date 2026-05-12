@@ -8,6 +8,7 @@ import 'package:peereess/provider/auth_provider.dart';
 import 'package:peereess/provider/chatlistprovider.dart';
 import 'package:peereess/provider/product_provider.dart';
 import 'package:peereess/screens/widgets/addtocart_widget.dart';
+import 'package:peereess/screens/widgets/inappcamera.dart';
 import 'package:peereess/screens/widgets/loadingwidget.dart';
 import 'package:provider/provider.dart';
 import 'package:peereess/provider/chatprovider.dart';
@@ -45,13 +46,13 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollCtrl = ScrollController();
   final ImagePicker _picker = ImagePicker();
 
-  // All provider references saved here — context.read is NEVER called in dispose()
   late ChatProvider _chatProvider;
   late ChatListProvider _chatListProvider;
   late AuthProvider _authProvider;
 
   File? _selectedImage;
   bool _isDisposed = false;
+  bool _isDeleting = false;
   final formatter = NumberFormat("#,##0", "en_US");
 
   late VoidCallback _chatListener;
@@ -67,7 +68,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
 
-    // Grab all provider references here — context is safe in initState
     _chatProvider = context.read<ChatProvider>();
     _chatListProvider = context.read<ChatListProvider>();
     _authProvider = context.read<AuthProvider>();
@@ -88,7 +88,6 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (_isDisposed) return;
 
-      // Tell both providers which chat is open so unread badges pause incrementing
       _chatProvider.setChatOpen(
         productId: widget.productId,
         userId: _conversationUserId,
@@ -100,7 +99,6 @@ class _ChatScreenState extends State<ChatScreen> {
         viewerId: _isAdmin ? widget.userId : null,
       );
 
-      // Fetch messages first, then mark as read so the DB update is accurate
       if (_chatProvider.messages.isEmpty) {
         await _chatProvider.fetchMessages(
           productId: widget.productId,
@@ -111,9 +109,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
       if (_isDisposed) return;
 
-      // Mark read in both providers after messages are loaded:
-      // ChatListProvider clears the badge; ChatProvider flips isRead on _messages
-      // so the double-tick icons turn blue for the sender
       _chatListProvider.markChatAsRead(
         productId: widget.productId,
         userId: widget.userId,
@@ -134,9 +129,18 @@ class _ChatScreenState extends State<ChatScreen> {
     _chatProvider.removeListener(_chatListener);
     _messageCtrl.dispose();
     _scrollCtrl.dispose();
-    // Use saved reference — NEVER call context.read() inside dispose()
     _chatListProvider.setChatClosed();
     super.dispose();
+  }
+
+  Future<void> _deleteChat() async {
+    if (_isDisposed) return;
+    setState(() => _isDeleting = true);
+    await _chatListProvider.deleteChat(widget.productId, widget.userId);
+    if (!_isDisposed && mounted) {
+      setState(() => _isDeleting = false);
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _sendMessage({File? imageFile}) async {
@@ -186,7 +190,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _pickImage({required bool fromCamera}) async {
     try {
-      if (!fromCamera && Platform.isAndroid) {
+      if (fromCamera) {
+        final File? photo = await Navigator.push<File>(
+          context,
+          MaterialPageRoute(builder: (_) => const InAppCamera()),
+        );
+        if (photo != null && mounted) {
+          setState(() => _selectedImage = photo);
+        }
+        return;
+      }
+
+      if (Platform.isAndroid) {
         final LostDataResponse response = await _picker.retrieveLostData();
         if (response.file != null && mounted) {
           setState(() => _selectedImage = File(response.file!.path));
@@ -195,7 +210,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       final XFile? pickedFile = await _picker.pickImage(
-        source: fromCamera ? ImageSource.camera : ImageSource.gallery,
+        source: ImageSource.gallery,
         imageQuality: 50,
         maxWidth: 1024,
         maxHeight: 1024,
@@ -205,7 +220,7 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() => _selectedImage = File(pickedFile.path));
       }
     } catch (e) {
-      // debugPrint("Image pick error: $e");
+      debugPrint("Image pick error: $e");
     }
   }
 
@@ -221,12 +236,17 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           body: GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: Center(
+            child: SizedBox.expand(
               child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
                 child: CachedNetworkImage(
                   imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
                   placeholder: (context, url) => const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                    child: LogoLoadingIndicator(),
                   ),
                   errorWidget: (context, url, error) => const Icon(
                     Icons.broken_image,
@@ -422,7 +442,7 @@ class _ChatScreenState extends State<ChatScreen> {
               onTap: () {
                 showCustomMenu(
                   context: context,
-                  chatListProvider: _chatListProvider,
+                  onDelete: _deleteChat,
                   productId: widget.productId,
                   userId: widget.userId,
                   isAdmin: _isAdmin,
@@ -438,265 +458,291 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
       ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollCtrl,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final msg = messages[index];
+      body: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollCtrl,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = messages[index];
 
-                  if (msg.productId != widget.productId) {
-                    return const SizedBox.shrink();
-                  }
+                      if (msg.productId != widget.productId) {
+                        return const SizedBox.shrink();
+                      }
 
-                  final t = msg.createdAt;
-                  final formattedTime = "${t.hour.toString().padLeft(2, '0')}:"
-                      "${t.minute.toString().padLeft(2, '0')}";
+                      final t = msg.createdAt;
+                      final formattedTime =
+                          "${t.hour.toString().padLeft(2, '0')}:"
+                          "${t.minute.toString().padLeft(2, '0')}";
 
-                  final bool isMyMessage =
-                      _isAdmin ? msg.role == 'admin' : msg.isMe;
+                      final bool isMyMessage =
+                          _isAdmin ? msg.role == 'admin' : msg.isMe;
 
-                  final alignment = isMyMessage
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft;
-                  final bgColor =
-                      isMyMessage ? Colors.brown[200] : Colors.grey[300];
+                      final alignment = isMyMessage
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft;
+                      final bgColor =
+                          isMyMessage ? Colors.brown[200] : Colors.grey[300];
 
-                  return Align(
-                    alignment: alignment,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_isAdmin)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 2),
-                              child: Text(
-                                msg.role == 'admin'
-                                    ? 'You'
-                                    : (msg.fullName.isNotEmpty
-                                        ? msg.fullName
-                                        : 'Customer'),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.brown.shade700,
+                      return Align(
+                        alignment: alignment,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_isAdmin)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 2),
+                                  child: Text(
+                                    msg.role == 'admin'
+                                        ? 'You'
+                                        : (msg.fullName.isNotEmpty
+                                            ? msg.fullName
+                                            : 'Customer'),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.brown.shade700,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          if (msg.uploadImage != null)
-                            GestureDetector(
-                              onTap: () => _openFullImage(msg.uploadImage!),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: msg.uploadImage!,
-                                  width: 200,
-                                  height: 200,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
-                                    width: 200,
-                                    height: 200,
-                                    color: Colors.grey[200],
-                                    child: const Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                              if (msg.uploadImage != null)
+                                GestureDetector(
+                                  onTap: () => _openFullImage(msg.uploadImage!),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: CachedNetworkImage(
+                                      imageUrl: msg.uploadImage!,
+                                      width: 200,
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Container(
+                                        width: 200,
+                                        height: 200,
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: LogoLoadingIndicator(),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                        width: 200,
+                                        height: 200,
+                                        color: Colors.grey[200],
+                                        child: const Icon(
+                                          Icons.broken_image,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  errorWidget: (context, url, error) =>
-                                      Container(
-                                    width: 200,
-                                    height: 200,
-                                    color: Colors.grey[200],
-                                    child: const Icon(
-                                      Icons.broken_image,
-                                      color: Colors.grey,
+                                )
+                              else
+                                Text(msg.message),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    formattedTime,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.blueGrey,
                                     ),
                                   ),
-                                ),
+                                  if (isMyMessage) ...[
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      msg.isRead ? Icons.done_all : Icons.done,
+                                      size: 14,
+                                      color: msg.isRead
+                                          ? Colors.blue
+                                          : Colors.grey,
+                                    ),
+                                  ],
+                                ],
                               ),
-                            )
-                          else
-                            Text(msg.message),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                formattedTime,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.blueGrey,
-                                ),
-                              ),
-                              if (isMyMessage) ...[
-                                const SizedBox(width: 4),
-                                Icon(
-                                  msg.isRead ? Icons.done_all : Icons.done,
-                                  size: 14,
-                                  color: msg.isRead ? Colors.blue : Colors.grey,
-                                ),
-                              ],
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (_selectedImage != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        _selectedImage!,
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.cover,
-                      ),
+                if (_selectedImage != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
                     ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedImage = null),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.black54,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            size: 18,
-                            color: Colors.white,
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            _selectedImage!,
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.cover,
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            SafeArea(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.grey.shade300)),
-                ),
-                child: Row(
-                  children: [
-                    5.getWidthWhiteSpacing,
-                    GestureDetector(
-                      onTap: () => _pickImage(fromCamera: false),
-                      child: const Icon(
-                        IconsaxPlusLinear.image,
-                        color: Color(0xff9D6E2D),
-                      ),
-                    ),
-                    5.getWidthWhiteSpacing,
-                    Expanded(
-                      child: SizedBox(
-                        height: 36,
-                        child: TextField(
-                          controller: _messageCtrl,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) {
-                            if (_messageCtrl.text.trim().isNotEmpty ||
-                                _selectedImage != null) {
-                              _sendMessage(imageFile: _selectedImage);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: _isAdmin
-                                ? "Reply to customer..."
-                                : "Type a message",
-                            hintStyle: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                              fontFamily: 'poppins',
-                              fontStyle: FontStyle.italic,
-                            ),
-                            suffixIcon: GestureDetector(
-                              onTap: () => _pickImage(fromCamera: true),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedImage = null),
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black54,
+                              ),
                               child: const Icon(
-                                IconsaxPlusLinear.camera,
-                                color: Color(0xff9D6E2D),
+                                Icons.close,
+                                size: 18,
+                                color: Colors.white,
                               ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 10,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.grey),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                SafeArea(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      border:
+                          Border(top: BorderSide(color: Colors.grey.shade300)),
+                    ),
+                    child: Row(
+                      children: [
+                        5.getWidthWhiteSpacing,
+                        GestureDetector(
+                          onTap: () => _pickImage(fromCamera: false),
+                          child: const Icon(
+                            IconsaxPlusLinear.image,
+                            color: Color(0xff9D6E2D),
+                          ),
+                        ),
+                        5.getWidthWhiteSpacing,
+                        Expanded(
+                          child: SizedBox(
+                            height: 36,
+                            child: TextField(
+                              controller: _messageCtrl,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (_) {
+                                if (_messageCtrl.text.trim().isNotEmpty ||
+                                    _selectedImage != null) {
+                                  _sendMessage(imageFile: _selectedImage);
+                                }
+                              },
+                              decoration: InputDecoration(
+                                hintText: _isAdmin
+                                    ? "Reply to customer..."
+                                    : "Type a message",
+                                hintStyle: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontFamily: 'poppins',
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                suffixIcon: GestureDetector(
+                                  onTap: () => _pickImage(fromCamera: true),
+                                  child: const Icon(
+                                    IconsaxPlusLinear.camera,
+                                    color: Color(0xff9D6E2D),
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 10,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide:
+                                      const BorderSide(color: Colors.grey),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide:
+                                      const BorderSide(color: Colors.grey),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    5.getWidthWhiteSpacing,
-                    InkWell(
-                      onTap: () => _sendMessage(imageFile: _selectedImage),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xff9D6E2D),
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Icon(
-                            Icons.send,
-                            color: Colors.white,
-                            size: 16,
+                        5.getWidthWhiteSpacing,
+                        InkWell(
+                          onTap: () => _sendMessage(imageFile: _selectedImage),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xff9D6E2D),
+                            ),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(
+                                Icons.send,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Delete loading overlay ──────────────────────────────────
+          if (_isDeleting)
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
               ),
+              child: const Center(
+                child: LogoLoadingIndicator(),
+              ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -704,7 +750,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
 void showCustomMenu({
   required BuildContext context,
-  required ChatListProvider chatListProvider,
+  required Future<void> Function() onDelete,
   required String productId,
   required String userId,
   required bool isAdmin,
@@ -730,7 +776,7 @@ void showCustomMenu({
             child: Material(
               color: Colors.transparent,
               child: Container(
-                width: 150, // smaller width
+                width: 150,
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(255, 233, 226, 226),
@@ -750,11 +796,7 @@ void showCustomMenu({
                     InkWell(
                       onTap: () {
                         Navigator.pop(context);
-
-                        chatListProvider.deleteChat(
-                          productId,
-                          userId,
-                        );
+                        onDelete();
                       },
                       child: const Padding(
                         padding: EdgeInsets.symmetric(
@@ -771,9 +813,7 @@ void showCustomMenu({
                             SizedBox(width: 8),
                             Text(
                               'Delete Messages',
-                              style: TextStyle(
-                                fontSize: 10,
-                              ),
+                              style: TextStyle(fontSize: 10),
                             ),
                           ],
                         ),
@@ -790,10 +830,7 @@ void showCustomMenu({
                     InkWell(
                       onTap: () {
                         Navigator.pop(context);
-
-                        if (!isAdmin) {
-                          onViewProduct();
-                        }
+                        if (!isAdmin) onViewProduct();
                       },
                       child: const Padding(
                         padding: EdgeInsets.symmetric(
@@ -810,9 +847,7 @@ void showCustomMenu({
                             SizedBox(width: 8),
                             Text(
                               'View Product',
-                              style: TextStyle(
-                                fontSize: 10,
-                              ),
+                              style: TextStyle(fontSize: 10),
                             ),
                           ],
                         ),

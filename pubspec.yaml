@@ -2,7 +2,7 @@ name: peereess
 description: "Your shopping app"
 publish_to: 'none'
 
-version: 1.0.0+4
+version: 1.0.0+5
 
 environment:
   sdk: ^3.5.0
@@ -15,6 +15,7 @@ dependencies:
   google_fonts: ^6.2.1
   provider: ^6.1.5+1
   cached_network_image: ^3.4.1
+  camera: ^0.11.0+2
   iconsax_plus: ^1.0.0
   appwrite: ^20.3.2
   flutter_secure_storage: ^9.2.4

@@ -99,7 +99,7 @@ class _VerifyemailState extends State<Verifyemail> {
 
   Future<void> verifyOtp() async {
     if (otp.length != 6) {
-      setState(() => error = "Enter valid OTP");
+      setState(() => error = "Enter valid code");
       return;
     }
 
@@ -112,7 +112,7 @@ class _VerifyemailState extends State<Verifyemail> {
       final success = await EmailVerificationService.verifyOtp(email, otp);
 
       if (!success) {
-        setState(() => error = "Invalid or expired OTP");
+        setState(() => error = "Invalid or expired code");
         return;
       }
 

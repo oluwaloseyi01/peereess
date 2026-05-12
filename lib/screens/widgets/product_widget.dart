@@ -175,7 +175,7 @@ class ProductWidget extends StatelessWidget {
                     product.description,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 9, color: Colors.grey[700]),
+                    style: TextStyle(fontSize: 10, color: Colors.grey[700]),
                   ),
                   const SizedBox(height: 2),
                   Row(

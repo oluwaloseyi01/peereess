@@ -17,7 +17,6 @@ class Signup extends StatefulWidget {
 }
 
 class _SignupState extends State<Signup> {
-  final PageController _pageCtrl = PageController();
   int _currentPage = 0;
 
   final _formKey1 = GlobalKey<FormState>();
@@ -44,23 +43,16 @@ class _SignupState extends State<Signup> {
 
   void _nextPage(GlobalKey<FormState> key) {
     if (key.currentState!.validate()) {
-      _pageCtrl.nextPage(
-        duration: const Duration(milliseconds: 420),
-        curve: Curves.easeInOutCubic,
-      );
+      setState(() => _currentPage++);
     }
   }
 
   void _prevPage() {
-    _pageCtrl.previousPage(
-      duration: const Duration(milliseconds: 420),
-      curve: Curves.easeInOutCubic,
-    );
+    setState(() => _currentPage--);
   }
 
   @override
   void dispose() {
-    _pageCtrl.dispose();
     super.dispose();
   }
 
@@ -73,7 +65,7 @@ class _SignupState extends State<Signup> {
   double _hPad(double sw) {
     if (sw > 1200) return 24;
     if (sw > 600) return 20;
-    return 10;
+    return 12;
   }
 
   InputDecoration _inputDecor() => InputDecoration(
@@ -133,118 +125,106 @@ class _SignupState extends State<Signup> {
     );
   }
 
-  Widget _pageShell({required Widget child}) {
-    final sw = MediaQuery.of(context).size.width;
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(maxWidth: _maxWidth(sw)),
-        padding: EdgeInsets.symmetric(horizontal: _hPad(sw)),
-        child: child,
-      ),
-    );
-  }
-
   // ═══════════════════════════════════════════════════════════════════
   // PAGE 1 — Personal Info
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildPage1(AuthProvider auth) {
-    return _pageShell(
-      child: Form(
-        key: _formKey1,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            20.getHeightWhiteSpacing,
-            const Text(
-              "Let’s get to know you",
-              style: TextStyle(
-                fontSize: 15,
-                fontFamily: 'poppins',
-                fontWeight: FontWeight.w600,
+    return Form(
+      key: _formKey1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          20.getHeightWhiteSpacing,
+          const Text(
+            "Let's get to know you",
+            style: TextStyle(
+              fontSize: 15,
+              fontFamily: 'poppins',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Text(
+            "Start with the basics.",
+            style: TextStyle(
+                color: Color.fromARGB(255, 138, 137, 137), fontSize: 12),
+          ),
+          16.getHeightWhiteSpacing,
+          const Text(
+            "Full Name",
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+          4.getHeightWhiteSpacing,
+          TextFormField(
+            controller: auth.fullNameController,
+            validator: (v) {
+              if (v == null || v.isEmpty) return "Full name is required";
+              if (v.length < 3) return "Name must be at least 3 characters";
+              return null;
+            },
+            style: const TextStyle(fontSize: 15),
+            decoration: _inputDecor(),
+          ),
+          10.getHeightWhiteSpacing,
+          const Text(
+            "Email Address",
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+          4.getHeightWhiteSpacing,
+          TextFormField(
+            controller: auth.emailController,
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) {
+              if (v == null || v.isEmpty) return "Email is required";
+              if (!v.contains("@") || !v.contains("."))
+                return "Enter a valid email";
+              return null;
+            },
+            style: const TextStyle(fontSize: 15),
+            decoration: _inputDecor(),
+          ),
+          10.getHeightWhiteSpacing,
+          const Text(
+            "Phone Number",
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+          4.getHeightWhiteSpacing,
+          TextFormField(
+            controller: auth.phoneNumberController,
+            keyboardType: TextInputType.phone,
+            validator: (v) {
+              if (v == null || v.isEmpty) return "Phone number is required";
+              if (v.length < 10) return "Enter a valid phone number";
+              return null;
+            },
+            style: const TextStyle(fontSize: 15),
+            decoration: _inputDecor(),
+          ),
+          20.getHeightWhiteSpacing,
+          AppButtons(text: "Next", onPressed: () => _nextPage(_formKey1)),
+          14.getHeightWhiteSpacing,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                "Already have an account?",
+                style: TextStyle(color: Colors.black),
               ),
-            ),
-            const Text(
-              "Start with the basics.",
-              style: TextStyle(
-                  color: Color.fromARGB(255, 138, 137, 137), fontSize: 12),
-            ),
-            16.getHeightWhiteSpacing,
-            const Text(
-              "Full Name",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            4.getHeightWhiteSpacing,
-            TextFormField(
-              controller: auth.fullNameController,
-              validator: (v) {
-                if (v == null || v.isEmpty) return "Full name is required";
-                if (v.length < 3) return "Name must be at least 3 characters";
-                return null;
-              },
-              style: const TextStyle(fontSize: 15),
-              decoration: _inputDecor(),
-            ),
-            10.getHeightWhiteSpacing,
-            const Text(
-              "Email Address",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            4.getHeightWhiteSpacing,
-            TextFormField(
-              controller: auth.emailController,
-              keyboardType: TextInputType.emailAddress,
-              validator: (v) {
-                if (v == null || v.isEmpty) return "Email is required";
-                if (!v.contains("@") || !v.contains("."))
-                  return "Enter a valid email";
-                return null;
-              },
-              style: const TextStyle(fontSize: 15),
-              decoration: _inputDecor(),
-            ),
-            10.getHeightWhiteSpacing,
-            const Text(
-              "Phone Number",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            4.getHeightWhiteSpacing,
-            TextFormField(
-              controller: auth.phoneNumberController,
-              keyboardType: TextInputType.phone,
-              validator: (v) {
-                if (v == null || v.isEmpty) return "Phone number is required";
-                if (v.length < 10) return "Enter a valid phone number";
-                return null;
-              },
-              style: const TextStyle(fontSize: 15),
-              decoration: _inputDecor(),
-            ),
-            20.getHeightWhiteSpacing,
-            AppButtons(text: "Next", onPressed: () => _nextPage(_formKey1)),
-            14.getHeightWhiteSpacing,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Already have an account?",
-                  style: TextStyle(color: Colors.black),
-                ),
-                const SizedBox(width: 5),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, "/login"),
-                  child: const Text(
-                    "Sign in",
-                    style: TextStyle(
-                      color: Color(0xffB0864C),
-                      fontWeight: FontWeight.bold,
-                    ),
+              const SizedBox(width: 5),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, "/login"),
+                child: const Text(
+                  "Sign in",
+                  style: TextStyle(
+                    color: Color(0xffB0864C),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-            20.getHeightWhiteSpacing,
-          ],
-        ),
+              ),
+            ],
+          ),
+          20.getHeightWhiteSpacing,
+        ],
       ),
     );
   }
@@ -253,112 +233,110 @@ class _SignupState extends State<Signup> {
   // PAGE 2 — Password
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildPage2(AuthProvider auth) {
-    return _pageShell(
-      child: Form(
-        key: _formKey2,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            20.getHeightWhiteSpacing,
-            const Text(
-              "Secure your account",
-              style: TextStyle(
-                fontSize: 15,
-                fontFamily: 'poppins',
-                fontWeight: FontWeight.w600,
+    return Form(
+      key: _formKey2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          20.getHeightWhiteSpacing,
+          const Text(
+            "Secure your account",
+            style: TextStyle(
+              fontSize: 15,
+              fontFamily: 'poppins',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Text(
+            "Choose a strong password.",
+            style: TextStyle(
+                color: Color.fromARGB(255, 138, 137, 137), fontSize: 12),
+          ),
+          16.getHeightWhiteSpacing,
+          const Text(
+            "Password",
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+          4.getHeightWhiteSpacing,
+          Stack(
+            alignment: Alignment.centerRight,
+            children: [
+              TextFormField(
+                controller: auth.passwordController,
+                obscureText: isObscurePass,
+                onChanged: validatePassword,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return "Password is required";
+                  if (!has8Chars || !hasNumber || !hasUpperLower)
+                    return "Password does not meet safety rules";
+                  return null;
+                },
+                style: const TextStyle(fontSize: 15),
+                decoration: _inputDecor(),
               ),
-            ),
-            const Text(
-              "Choose a strong password.",
-              style: TextStyle(
-                  color: Color.fromARGB(255, 138, 137, 137), fontSize: 12),
-            ),
-            16.getHeightWhiteSpacing,
-            const Text(
-              "Password",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            4.getHeightWhiteSpacing,
-            Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                TextFormField(
-                  controller: auth.passwordController,
-                  obscureText: isObscurePass,
-                  onChanged: validatePassword,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Password is required";
-                    if (!has8Chars || !hasNumber || !hasUpperLower)
-                      return "Password does not meet safety rules";
-                    return null;
-                  },
-                  style: const TextStyle(fontSize: 15),
-                  decoration: _inputDecor(),
+              IconButton(
+                icon: Icon(
+                  isObscurePass ? Icons.visibility : Icons.visibility_off,
+                  size: 18,
+                  color: Colors.grey,
                 ),
-                IconButton(
-                  icon: Icon(
-                    isObscurePass ? Icons.visibility : Icons.visibility_off,
-                    size: 18,
-                    color: Colors.grey,
-                  ),
-                  onPressed: () =>
-                      setState(() => isObscurePass = !isObscurePass),
+                onPressed: () => setState(() => isObscurePass = !isObscurePass),
+              ),
+            ],
+          ),
+          6.getHeightWhiteSpacing,
+          _ruleRow("At least 8 characters", has8Chars),
+          _ruleRow("At least 1 number", hasNumber),
+          _ruleRow("Both upper and lowercase", hasUpperLower),
+          16.getHeightWhiteSpacing,
+          const Text(
+            "Confirm Password",
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+          4.getHeightWhiteSpacing,
+          Stack(
+            alignment: Alignment.centerRight,
+            children: [
+              TextFormField(
+                obscureText: isObscureConfirm,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return "Confirm your password";
+                  if (v != auth.passwordController.text)
+                    return "Passwords do not match";
+                  return null;
+                },
+                style: const TextStyle(fontSize: 15),
+                decoration: _inputDecor(),
+              ),
+              IconButton(
+                icon: Icon(
+                  isObscureConfirm ? Icons.visibility : Icons.visibility_off,
+                  size: 18,
+                  color: Colors.grey,
                 ),
-              ],
-            ),
-            6.getHeightWhiteSpacing,
-            _ruleRow("At least 8 characters", has8Chars),
-            _ruleRow("At least 1 number", hasNumber),
-            _ruleRow("Both upper and lowercase", hasUpperLower),
-            16.getHeightWhiteSpacing,
-            const Text(
-              "Confirm Password",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            4.getHeightWhiteSpacing,
-            Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                TextFormField(
-                  obscureText: isObscureConfirm,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Confirm your password";
-                    if (v != auth.passwordController.text)
-                      return "Passwords do not match";
-                    return null;
-                  },
-                  style: const TextStyle(fontSize: 15),
-                  decoration: _inputDecor(),
+                onPressed: () =>
+                    setState(() => isObscureConfirm = !isObscureConfirm),
+              ),
+            ],
+          ),
+          20.getHeightWhiteSpacing,
+          Row(
+            children: [
+              Expanded(
+                child: Appbuttons2(text: "Back", onPressed: _prevPage),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppButtons(
+                  text: "Next",
+                  onPressed: () => _nextPage(_formKey2),
                 ),
-                IconButton(
-                  icon: Icon(
-                    isObscureConfirm ? Icons.visibility : Icons.visibility_off,
-                    size: 18,
-                    color: Colors.grey,
-                  ),
-                  onPressed: () =>
-                      setState(() => isObscureConfirm = !isObscureConfirm),
-                ),
-              ],
-            ),
-            20.getHeightWhiteSpacing,
-            Row(
-              children: [
-                Expanded(
-                  child: Appbuttons2(text: "Back", onPressed: _prevPage),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: AppButtons(
-                    text: "Next",
-                    onPressed: () => _nextPage(_formKey2),
-                  ),
-                ),
-              ],
-            ),
-            20.getHeightWhiteSpacing,
-          ],
-        ),
+              ),
+            ],
+          ),
+          20.getHeightWhiteSpacing,
+        ],
       ),
     );
   }
@@ -367,153 +345,173 @@ class _SignupState extends State<Signup> {
   // PAGE 3 — Terms & Confirm
   // ═══════════════════════════════════════════════════════════════════
   Widget _buildPage3(AuthProvider auth) {
-    return _pageShell(
-      child: Form(
-        key: _formKey3,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            20.getHeightWhiteSpacing,
-            const Text(
-              "Almost there!",
-              style: TextStyle(
-                fontSize: 15,
-                fontFamily: 'poppins',
-                fontWeight: FontWeight.w600,
-              ),
+    return Form(
+      key: _formKey3,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          20.getHeightWhiteSpacing,
+          const Text(
+            "Almost there!",
+            style: TextStyle(
+              fontSize: 15,
+              fontFamily: 'poppins',
+              fontWeight: FontWeight.w600,
             ),
-            const Text(
-              "Review and accept to create your account.",
-              style: TextStyle(
-                  color: Color.fromARGB(255, 138, 137, 137), fontSize: 12),
+          ),
+          const Text(
+            "Review and accept to create your account.",
+            style: TextStyle(
+                color: Color.fromARGB(255, 138, 137, 137), fontSize: 12),
+          ),
+          24.getHeightWhiteSpacing,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
             ),
-            24.getHeightWhiteSpacing,
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _summaryRow(
-                    Icons.person_outline,
-                    auth.fullNameController.text,
-                  ),
-                  const SizedBox(height: 10),
-                  _summaryRow(Icons.email_outlined, auth.emailController.text),
-                  const SizedBox(height: 10),
-                  _summaryRow(
-                    Icons.phone_outlined,
-                    auth.phoneNumberController.text,
-                  ),
-                  const SizedBox(height: 10),
-                  _summaryRow(Icons.lock_outline, "••••••••"),
-                ],
-              ),
-            ),
-            24.getHeightWhiteSpacing,
-            Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: () => setState(() => agreeTerms = !agreeTerms),
-                  child: Container(
-                    height: 15,
-                    width: 15,
-                    margin: const EdgeInsets.only(top: 2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.rectangle,
-                      border: Border.all(color: const Color(0xffB0864C)),
-                      color: agreeTerms
-                          ? const Color(0xffB0864C)
-                          : Colors.transparent,
+                _summaryRow(
+                  Icons.person_outline,
+                  auth.fullNameController.text,
+                ),
+                const SizedBox(height: 10),
+                _summaryRow(Icons.email_outlined, auth.emailController.text),
+                const SizedBox(height: 10),
+                _summaryRow(
+                  Icons.phone_outlined,
+                  auth.phoneNumberController.text,
+                ),
+                const SizedBox(height: 10),
+                _summaryRow(Icons.lock_outline, "••••••••"),
+              ],
+            ),
+          ),
+          24.getHeightWhiteSpacing,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () => setState(() => agreeTerms = !agreeTerms),
+                child: Container(
+                  height: 15,
+                  width: 15,
+                  margin: const EdgeInsets.only(top: 2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.rectangle,
+                    border: Border.all(color: const Color(0xffB0864C)),
+                    color: agreeTerms
+                        ? const Color(0xffB0864C)
+                        : Colors.transparent,
+                  ),
+                  child: agreeTerms
+                      ? const Icon(Icons.check, size: 11, color: Colors.white)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Wrap(
+                  children: [
+                    const Text(
+                      "By clicking Continue, you accept our",
+                      style: TextStyle(color: Colors.grey, fontSize: 10),
                     ),
-                    child: agreeTerms
-                        ? const Icon(Icons.check, size: 11, color: Colors.white)
-                        : null,
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TermsofUse()),
+                      ),
+                      child: const Text(
+                        " Terms of Service",
+                        style: TextStyle(
+                          color: Color(0xFF604520),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const Text(
+                      " and",
+                      style: TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const Privacypolicy(),
+                        ),
+                      ),
+                      child: const Text(
+                        " Privacy Policy.",
+                        style: TextStyle(
+                          color: Color(0xFF604520),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          20.getHeightWhiteSpacing,
+          Row(
+            children: [
+              Expanded(
+                child: Appbuttons2(text: "Back", onPressed: _prevPage),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppButtons(
+                  text: "Create Account",
+                  onPressed: () {
+                    if (!agreeTerms) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("You must accept terms to continue"),
+                        ),
+                      );
+                      return;
+                    }
+                    auth.register(context);
+                  },
+                ),
+              ),
+            ],
+          ),
+          14.getHeightWhiteSpacing,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                "Already have an account?",
+                style: TextStyle(color: Colors.black),
+              ),
+              const SizedBox(width: 5),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, "/login"),
+                child: const Text(
+                  "Sign in",
+                  style: TextStyle(
+                    color: Color(0xffB0864C),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Wrap(
-                    children: [
-                      const Text(
-                        "By clicking Continue, you accept our",
-                        style: TextStyle(color: Colors.grey, fontSize: 10),
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const TermsofUse()),
-                        ),
-                        child: const Text(
-                          " Terms of Service",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                      const Text(
-                        " and",
-                        style: TextStyle(color: Colors.grey, fontSize: 10),
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const Privacypolicy(),
-                          ),
-                        ),
-                        child: const Text(
-                          " Privacy Policy.",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            20.getHeightWhiteSpacing,
-            Row(
-              children: [
-                Expanded(
-                  child: Appbuttons2(text: "Back", onPressed: _prevPage),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: AppButtons(
-                    text: "Create Account",
-                    onPressed: () {
-                      if (!agreeTerms) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("You must accept terms to continue"),
-                          ),
-                        );
-                        return;
-                      }
-                      auth.register(context);
-                    },
-                  ),
-                ),
-              ],
-            ),
-            20.getHeightWhiteSpacing,
-          ],
-        ),
+              ),
+            ],
+          ),
+          20.getHeightWhiteSpacing,
+        ],
       ),
     );
   }
@@ -550,7 +548,8 @@ class _SignupState extends State<Signup> {
 
   @override
   Widget build(BuildContext context) {
-    var auth = context.watch<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
+    final sw = MediaQuery.of(context).size.width;
 
     return Scaffold(
       body: Container(
@@ -566,59 +565,62 @@ class _SignupState extends State<Signup> {
         child: Stack(
           children: [
             SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                    child: Column(
-                      children: [
-                        AnimatedGradientText(
-                          text: "Peereess",
-                          fontSize: 30,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: "poppins",
-                          gradientColors: const [
-                            Color(0xFF604520),
-                            Color(0xFFDD7394),
-                          ],
-                        ),
-                        8.getHeightWhiteSpacing,
-                        const Text(
-                          "Let's make you a peereess member",
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontFamily: 'poppins',
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Center(
+                    child: Container(
+                      constraints: BoxConstraints(maxWidth: _maxWidth(sw)),
+                      padding: EdgeInsets.symmetric(horizontal: _hPad(sw)),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          50.getHeightWhiteSpacing,
+                          AnimatedGradientText(
+                            text: "Peereess",
+                            fontSize: 30,
                             fontWeight: FontWeight.w600,
+                            fontFamily: "poppins",
+                            gradientColors: const [
+                              Color(0xFF604520),
+                              Color(0xFFDD7394),
+                            ],
                           ),
-                        ),
-                        16.getHeightWhiteSpacing,
-                        _buildStepIndicator(),
-                        8.getHeightWhiteSpacing,
-                      ],
+                          8.getHeightWhiteSpacing,
+                          const Text(
+                            "Let's make you a peereess member",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontFamily: 'poppins',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          16.getHeightWhiteSpacing,
+                          _buildStepIndicator(),
+                          8.getHeightWhiteSpacing,
+
+                          // ── PageView inside an intrinsic-height wrapper ──
+                          // We use an AnimatedSize + IndexedStack so the height
+                          // adjusts to whichever page is active, keeping the
+                          // whole screen centred like Login.
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.easeInOutCubic,
+                            child: IndexedStack(
+                              index: _currentPage,
+                              children: [
+                                _buildPage1(auth),
+                                _buildPage2(auth),
+                                _buildPage3(auth),
+                              ],
+                            ),
+                          ),
+
+                          50.getHeightWhiteSpacing,
+                        ],
+                      ),
                     ),
                   ),
-                  Expanded(
-                    child: PageView(
-                      controller: _pageCtrl,
-                      physics: const NeverScrollableScrollPhysics(),
-                      onPageChanged: (i) => setState(() => _currentPage = i),
-                      children: [
-                        SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: _buildPage1(auth),
-                        ),
-                        SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: _buildPage2(auth),
-                        ),
-                        SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: _buildPage3(auth),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             if (auth.isLoading)
