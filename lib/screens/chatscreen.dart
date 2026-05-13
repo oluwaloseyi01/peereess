@@ -50,7 +50,6 @@ class _ChatScreenState extends State<ChatScreen> {
   late ChatListProvider _chatListProvider;
   late AuthProvider _authProvider;
 
-  File? _selectedImage;
   bool _isDisposed = false;
   bool _isDeleting = false;
   final formatter = NumberFormat("#,##0", "en_US");
@@ -148,7 +147,6 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty && imageFile == null) return;
 
     _messageCtrl.clear();
-    setState(() => _selectedImage = null);
 
     final String senderName;
     if (_isAdmin) {
@@ -188,23 +186,24 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<void> _pickImage({required bool fromCamera}) async {
-    try {
-      if (fromCamera) {
-        final File? photo = await Navigator.push<File>(
-          context,
-          MaterialPageRoute(builder: (_) => const InAppCamera()),
-        );
-        if (photo != null && mounted) {
-          setState(() => _selectedImage = photo);
-        }
-        return;
-      }
+  /// Opens the in-app camera. Photo is confirmed inside the camera screen
+  /// (full-screen preview with Send / Retake). Returns a File or null.
+  Future<void> _openCamera() async {
+    final File? photo = await Navigator.push<File>(
+      context,
+      MaterialPageRoute(builder: (_) => const InAppCamera()),
+    );
+    if (photo != null && mounted) {
+      await _sendMessage(imageFile: photo);
+    }
+  }
 
+  Future<void> _pickFromGallery() async {
+    try {
       if (Platform.isAndroid) {
         final LostDataResponse response = await _picker.retrieveLostData();
         if (response.file != null && mounted) {
-          setState(() => _selectedImage = File(response.file!.path));
+          await _sendMessage(imageFile: File(response.file!.path));
           return;
         }
       }
@@ -217,7 +216,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (pickedFile != null && mounted) {
-        setState(() => _selectedImage = File(pickedFile.path));
+        await _sendMessage(imageFile: File(pickedFile.path));
       }
     } catch (e) {
       debugPrint("Image pick error: $e");
@@ -596,44 +595,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
                 ),
-                if (_selectedImage != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            _selectedImage!,
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: GestureDetector(
-                            onTap: () => setState(() => _selectedImage = null),
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.black54,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+
+                // ── Input bar ──────────────────────────────────────────
                 SafeArea(
                   child: Container(
                     padding:
@@ -646,7 +609,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       children: [
                         5.getWidthWhiteSpacing,
                         GestureDetector(
-                          onTap: () => _pickImage(fromCamera: false),
+                          onTap: _pickFromGallery,
                           child: const Icon(
                             IconsaxPlusLinear.image,
                             color: Color(0xff9D6E2D),
@@ -660,9 +623,8 @@ class _ChatScreenState extends State<ChatScreen> {
                               controller: _messageCtrl,
                               textInputAction: TextInputAction.send,
                               onSubmitted: (_) {
-                                if (_messageCtrl.text.trim().isNotEmpty ||
-                                    _selectedImage != null) {
-                                  _sendMessage(imageFile: _selectedImage);
+                                if (_messageCtrl.text.trim().isNotEmpty) {
+                                  _sendMessage();
                                 }
                               },
                               decoration: InputDecoration(
@@ -676,7 +638,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   fontStyle: FontStyle.italic,
                                 ),
                                 suffixIcon: GestureDetector(
-                                  onTap: () => _pickImage(fromCamera: true),
+                                  onTap: _openCamera,
                                   child: const Icon(
                                     IconsaxPlusLinear.camera,
                                     color: Color(0xff9D6E2D),
@@ -702,7 +664,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         5.getWidthWhiteSpacing,
                         InkWell(
-                          onTap: () => _sendMessage(imageFile: _selectedImage),
+                          onTap: () => _sendMessage(),
                           child: Container(
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
@@ -726,7 +688,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
-          // ── Delete loading overlay ──────────────────────────────────
+          // ── Delete loading overlay ─────────────────────────────────
           if (_isDeleting)
             Container(
               width: double.infinity,
@@ -792,7 +754,6 @@ void showCustomMenu({
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    /// Delete Message
                     InkWell(
                       onTap: () {
                         Navigator.pop(context);
@@ -819,14 +780,11 @@ void showCustomMenu({
                         ),
                       ),
                     ),
-
                     Divider(
                       height: 1,
                       thickness: 0.8,
                       color: Colors.grey.shade400,
                     ),
-
-                    /// View Product
                     InkWell(
                       onTap: () {
                         Navigator.pop(context);

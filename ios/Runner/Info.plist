@@ -30,10 +30,6 @@
 	<string>This app needs camera access to send photos in chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to send images in chat.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
