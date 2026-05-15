@@ -32,6 +32,9 @@ class _ChatState extends State<Chat> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    // ✅ Don't init chat for guests
+    if (widget.userId.isEmpty) return;
+
     Future.microtask(() {
       context.read<ChatListProvider>().init(widget.userId, admin: _isAdmin);
     });
@@ -48,6 +51,8 @@ class _ChatState extends State<Chat> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (widget.userId.isEmpty) return;
+
     if (state == AppLifecycleState.resumed) {
       if (mounted) {
         context.read<ChatListProvider>().fetchChats(
@@ -89,6 +94,36 @@ class _ChatState extends State<Chat> with WidgetsBindingObserver {
     final chatList = chatListProvider.chatList;
     final isLoading = chatListProvider.isLoading;
     final authProvider = context.watch<AuthProvider>();
+
+    // ✅ Guest — show sign-in prompt
+    if (widget.userId.isEmpty) {
+      return Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(IconsaxPlusLinear.message, size: 40, color: Colors.grey),
+                SizedBox(height: 10),
+                Text(
+                  "Sign in to view messages",
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     if (!authProvider.isConnected) {
       return Scaffold(

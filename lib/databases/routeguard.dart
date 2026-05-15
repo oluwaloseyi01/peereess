@@ -46,12 +46,13 @@ import 'package:provider/provider.dart';
 class RouteGuard {
   // ─────────────────────────────────────────────────────────────
   // These routes are ALWAYS allowed — no auth check whatsoever.
-  // Splash owns all startup navigation so these must never be
-  // intercepted by the logged-in / role guards below.
+  // /home is intentionally public so unauthenticated users can
+  // browse products without being forced to log in.
   // ─────────────────────────────────────────────────────────────
   static const _publicRoutes = {
     '/',
     '/onboarding',
+    '/home',
     '/login',
     '/signup',
     '/verifyemail',
@@ -59,6 +60,12 @@ class RouteGuard {
     '/forgotPassword',
     '/recomendscreen',
     '/whatyoulikescreen',
+    // These have no auth requirement either — safe to keep public
+    '/tems',
+    '/privacy&policy',
+    '/categoryscreen',
+    '/collection',
+    '/productDetails',
   };
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -69,12 +76,15 @@ class RouteGuard {
       settings: settings,
       builder: (context) {
         // ── PUBLIC: never touch auth state ──────────────────────
+        // /home is fully public — no login required to browse.
         if (_publicRoutes.contains(name)) {
           switch (name) {
             case '/':
               return const Splash();
             case '/onboarding':
               return const Onboarding();
+            case '/home':
+              return const Home(); // ✅ always returns Home, no auth check
             case '/login':
               return const Login();
             case '/signup':
@@ -93,15 +103,32 @@ class RouteGuard {
               return const Recomendscreen();
             case '/whatyoulikescreen':
               return const Whatyoulikescreen();
+            case '/categoryscreen':
+              final map = args as Map;
+              return Categoryscreen(
+                categoryType: map['type'],
+                allProducts: map['allProducts'],
+              );
+            case '/collection':
+              final map = args as Map;
+              return Collection(
+                selectedProduct: map['selectedProduct'],
+                allProducts: map['allProducts'],
+              );
+            case '/productDetails':
+              final map = args as Map;
+              return ProductDetails(product: map['product']);
             default:
-              return const Splash();
+              // ✅ Unknown public route — go home, never Splash
+              // (Splash would re-run startup logic and could redirect to /login)
+              return const Home();
           }
         }
 
         // ── AUTH GUARD: everything below requires a session ─────
         final auth = Provider.of<AuthProvider>(context, listen: false);
 
-        // Still initializing
+        // Still initializing — show a neutral loader, do NOT redirect
         if (!auth.isInitialized) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -138,9 +165,8 @@ class RouteGuard {
             case '/adminhome':
             case '/admin':
               return const Adminhome();
-
             case '/chat':
-              if (args == null) return const Home();
+              if (args == null) return const Adminhome();
               final map = args as Map;
               final productId = map['productId'] as String?;
               final userId = map['userId'] as String?;
@@ -148,7 +174,7 @@ class RouteGuard {
                   productId.isEmpty ||
                   userId == null ||
                   userId.isEmpty) {
-                return const Home();
+                return const Adminhome();
               }
               return ChatScreen(
                 productId: productId,
@@ -158,9 +184,9 @@ class RouteGuard {
                 firstVariantPrice: map['firstVariantPrice'] != null
                     ? double.tryParse(map['firstVariantPrice'].toString())
                     : null,
-                role: 'admin', // ← ADD
-                buyerId: map['buyerId'] as String?, // ← ADD
-                buyerName: map['buyerName'] as String?, // ← ADD
+                role: 'admin',
+                buyerId: map['buyerId'] as String?,
+                buyerName: map['buyerName'] as String?,
               );
             case '/supportChat':
               final map = args as Map;
@@ -234,7 +260,6 @@ class RouteGuard {
             return const Pushnotification();
           case '/pickup':
             return const Pickup();
-
           case '/categoryscreen':
             final map = args as Map;
             return Categoryscreen(
@@ -278,9 +303,7 @@ class RouteGuard {
               deliveryIncludedInCart: map['deliveryIncludedInCart'],
               selectedDelivery: map['selectedDelivery'],
             );
-
           case '/chat':
-            // ── Null-safe: args may be null if notification had no data ──
             if (args == null) return const Home();
             final map = args as Map;
             final productId = map['productId'] as String?;
@@ -300,7 +323,6 @@ class RouteGuard {
                   ? double.tryParse(map['firstVariantPrice'].toString())
                   : null,
             );
-
           case '/supportChat':
             final map = args as Map;
             return SupportChatScreen(
@@ -309,7 +331,6 @@ class RouteGuard {
               userName: map['userName'],
               role: map['role'],
             );
-
           default:
             return const Home();
         }

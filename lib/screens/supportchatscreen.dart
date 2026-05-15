@@ -7,6 +7,7 @@ import 'package:peereess/core/num_extension.dart';
 import 'package:peereess/model/supportchat_model.dart';
 import 'package:peereess/provider/auth_provider.dart';
 import 'package:peereess/provider/supportchat_provider.dart';
+import 'package:peereess/screens/widgets/imagepreview.dart';
 import 'package:peereess/screens/widgets/inappcamera.dart';
 import 'package:peereess/screens/widgets/loadingwidget.dart';
 import 'package:provider/provider.dart';
@@ -231,7 +232,29 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
       if (Platform.isAndroid) {
         final LostDataResponse response = await _picker.retrieveLostData();
         if (response.file != null && mounted) {
-          setState(() => _selectedImage = File(response.file!.path));
+          final File imageFile = File(response.file!.path);
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ImagePreviewScreen(
+                imageFile: imageFile,
+                retakeText: 'Reselect',
+                onRetake: () async {
+                  Navigator.pop(context);
+                  _pickImage(fromCamera: false);
+                },
+                onSend: () {
+                  Navigator.pop(context);
+
+                  setState(() {
+                    _selectedImage = imageFile;
+                  });
+                },
+              ),
+            ),
+          );
+
           return;
         }
       }
@@ -244,7 +267,28 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
       );
 
       if (pickedFile != null && mounted) {
-        setState(() => _selectedImage = File(pickedFile.path));
+        final File imageFile = File(pickedFile.path);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImagePreviewScreen(
+              imageFile: imageFile,
+              retakeText: 'Reselect',
+              onRetake: () async {
+                Navigator.pop(context);
+                _pickImage(fromCamera: false);
+              },
+              onSend: () {
+                Navigator.pop(context);
+
+                setState(() {
+                  _selectedImage = imageFile;
+                });
+              },
+            ),
+          ),
+        );
       }
     } catch (e) {
       debugPrint("Image pick error: $e");

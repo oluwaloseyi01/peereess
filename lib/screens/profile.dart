@@ -34,6 +34,7 @@ class _ProfileState extends State<Profile> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
+    // ── No internet ─────────────────────────────────────────
     if (!authProvider.isConnected) {
       return Container(
         width: double.infinity,
@@ -49,6 +50,68 @@ class _ProfileState extends State<Profile> {
       );
     }
 
+    // ── Guest view — not logged in ───────────────────────────
+    if (!authProvider.isLoggedIn) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.person_outline,
+                    size: 72,
+                    color: Color(0xff9D6E2D),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Sign in to your account",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'poppins',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Access your orders, wishlist, and personal settings.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xff6A7686),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  AppButtons(
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
+                    text: "Login",
+                  ),
+                  const SizedBox(height: 12),
+                  Appbuttons2(
+                    onPressed: () => Navigator.pushNamed(context, '/signup'),
+                    text: "Create Account",
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ── Authenticated view ───────────────────────────────────
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -61,7 +124,7 @@ class _ProfileState extends State<Profile> {
           ),
         ),
         child: Padding(
-          padding: EdgeInsets.fromLTRB(8, 0, 8, 8),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
           child: SafeArea(
             child: SingleChildScrollView(
               child: Column(
@@ -113,14 +176,9 @@ class _ProfileState extends State<Profile> {
                               clipBehavior: Clip.none,
                               children: [
                                 Container(
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: const Color.fromARGB(
-                                      255,
-                                      236,
-                                      216,
-                                      191,
-                                    ),
+                                    color: Color.fromARGB(255, 236, 216, 191),
                                   ),
                                   child: const Padding(
                                     padding: EdgeInsets.all(6.0),

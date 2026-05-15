@@ -1,6 +1,8 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:peereess/databases/config/appwrite.dart';
 import 'package:peereess/databases/config/sessionmanagement.dart';
+import 'package:peereess/provider/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class ApiHelper {
   /// Wraps an Appwrite call and handles 401 session expiry globally.
@@ -19,9 +21,18 @@ class ApiHelper {
       // caller's catch block can show the correct error message to the user.
       if (e.code == 401 && isAuthAction) rethrow;
 
-      // For all other screens a 401 means the session expired — redirect.
       if (e.code == 401) {
-        await _handleSessionExpired();
+        // ✅ Only redirect to /login if the user was actually supposed to
+        // have a session. If they are a guest browsing /home (isLoggedIn=false),
+        // a 401 is expected — just return null silently, no redirect.
+        final context = SessionManager.navigatorKey.currentContext;
+        final isLoggedIn =
+            context != null ? context.read<AuthProvider>().isLoggedIn : false;
+
+        if (isLoggedIn) {
+          await _handleSessionExpired();
+        }
+
         return null;
       }
 

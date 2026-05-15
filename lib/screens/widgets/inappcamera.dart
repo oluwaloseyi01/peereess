@@ -155,10 +155,7 @@ class _InAppCameraState extends State<InAppCamera> with WidgetsBindingObserver {
         children: [
           // Full-screen image
           Positioned.fill(
-            child: Image.file(
-              _capturedImage!,
-              fit: BoxFit.contain,
-            ),
+            child: Image.file(_capturedImage!, fit: BoxFit.contain),
           ),
 
           // Top: close (dismiss entire camera)
@@ -298,11 +295,7 @@ class _InAppCameraState extends State<InAppCamera> with WidgetsBindingObserver {
                           shape: BoxShape.circle,
                           color: Colors.black54,
                         ),
-                        child: Icon(
-                          _flashIcon,
-                          color: _flashColor,
-                          size: 22,
-                        ),
+                        child: Icon(_flashIcon, color: _flashColor, size: 22),
                       ),
                     ),
                 ],

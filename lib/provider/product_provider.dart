@@ -70,23 +70,33 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // ===================== SERVER FUNCTION CALL =====================
-  Future<Map<String, dynamic>> _callFunction(Map<String, dynamic> body) async {
+  // ✅ Only used for authenticated actions (like, delete, etc.)
+  // Returns null silently if the user is a guest — never throws session error
+  Future<Map<String, dynamic>?> _callFunction(Map<String, dynamic> body) async {
     final res = await ApiHelper.guard(
       () => AppwriteConfig.functions.createExecution(
         functionId: AppwriteConfig.productFunction,
         body: json.encode(body),
       ),
     );
-    if (res == null) {
-      throw Exception('Session expired. Please log in again.');
-    }
+    if (res == null) return null; // ✅ guest or session expired — silent
     return json.decode(res.responseBody) as Map<String, dynamic>;
+  }
+
+  // ===================== PUBLIC CLIENT (no auth) =====================
+  // A fresh TablesDB with no session — used for all public product reads.
+  // Guests never trigger a 401 redirect loop when browsing home.
+  static TablesDB _publicTablesDB() {
+    final client = Client()
+      ..setEndpoint(AppwriteConfig.endPoint)
+      ..setProject(AppwriteConfig.appwriteProjectId);
+    return TablesDB(client);
   }
 
   // ===================== GET PRODUCTS WITH PAGINATION =====================
   Future<void> getProducts({
     bool loadMore = false,
-    bool isRefresh = false, // new flag to indicate pull-to-refresh
+    bool isRefresh = false,
     Set<String> viewedIds = const {},
   }) async {
     if (_isFetchingMore) return;
@@ -101,39 +111,34 @@ class ProductProvider extends ChangeNotifier {
     if (!_hasMore) return;
 
     _isFetchingMore = true;
+    notifyListeners();
 
     try {
-      final rows = await ApiHelper.guard(
-        () => AppwriteConfig.tablesDB.listRows(
-          databaseId: AppwriteConfig.databaseId,
-          tableId: AppwriteConfig.product,
-          queries: [
-            Query.equal('status', 'approved'),
-            Query.orderDesc("\$createdAt"),
-            Query.limit(_limit),
-            Query.offset(_offset),
-          ],
-        ),
+      // ✅ Use public client — works for both guests and logged-in users
+      final rows = await _publicTablesDB().listRows(
+        databaseId: AppwriteConfig.databaseId,
+        tableId: AppwriteConfig.product,
+        queries: [
+          Query.equal('status', 'approved'),
+          Query.orderDesc("\$createdAt"),
+          Query.limit(_limit),
+          Query.offset(_offset),
+        ],
       );
-
-      if (rows == null) return;
 
       final newProducts =
           rows.rows.map((row) => ProductModel.fromMap(row.data)).toList();
 
-      // Shuffle new products only on fresh load (not refresh)
       if (!loadMore && !isRefresh) {
         newProducts.shuffle();
       }
 
-      // Add new products
       _products.addAll(newProducts);
       notifyListeners();
 
       _offset += newProducts.length;
       if (newProducts.length < _limit) _hasMore = false;
 
-      // Run ranking **only on refresh**
       if (isRefresh) {
         final snapshot = List<ProductModel>.from(_products);
         final ranked = await ProductRanker.rankAsync(snapshot, viewedIds);
@@ -142,9 +147,6 @@ class ProductProvider extends ChangeNotifier {
           ..addAll(ranked);
         notifyListeners();
       }
-    } on AppwriteException catch (e) {
-      // debugPrint("GET PRODUCTS ERROR: $e");
-      if (e.code == 401) rethrow;
     } catch (e) {
       // debugPrint("GET PRODUCTS ERROR: $e");
     } finally {
@@ -155,7 +157,7 @@ class ProductProvider extends ChangeNotifier {
   }
 
   Future<void> refreshProducts({Set<String> viewedIds = const {}}) =>
-      getProducts(viewedIds: viewedIds);
+      getProducts(isRefresh: true, viewedIds: viewedIds);
 
   // ===================== CATEGORY PRODUCTS =====================
   Future<void> getProductsByCategory(
@@ -178,52 +180,35 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final rows = await ApiHelper.guard(
-        () => AppwriteConfig.tablesDB.listRows(
-          databaseId: AppwriteConfig.databaseId,
-          tableId: AppwriteConfig.product,
-          queries: [
-            Query.equal('category', category),
-            Query.equal('status', 'approved'),
-            Query.orderDesc("\$createdAt"),
-            Query.limit(_limit),
-            Query.offset(_categoryOffset),
-          ],
-        ),
+      final rows = await _publicTablesDB().listRows(
+        databaseId: AppwriteConfig.databaseId,
+        tableId: AppwriteConfig.product,
+        queries: [
+          Query.equal('category', category),
+          Query.equal('status', 'approved'),
+          Query.orderDesc("\$createdAt"),
+          Query.limit(_limit),
+          Query.offset(_categoryOffset),
+        ],
       );
 
-      if (rows == null) return;
-
-      // ✅ STEP 1: map new products
       final newProducts =
           rows.rows.map((row) => ProductModel.fromMap(row.data)).toList();
 
-      // ✅ STEP 2: add to list FIRST
       _categoryProducts.addAll(newProducts);
 
-      // ✅ STEP 3: take snapshot for safe ranking
       final currentList = List<ProductModel>.from(_categoryProducts);
 
-      // ✅ STEP 4: rank in background
       Future(() async {
         final ranked = await rankProductsInBackground(currentList, viewedIds);
-
         _categoryProducts
           ..clear()
           ..addAll(ranked);
-
         notifyListeners();
       });
 
-      // ✅ STEP 5: pagination
       _categoryOffset += newProducts.length;
-
-      if (newProducts.length < _limit) {
-        _categoryHasMore = false;
-      }
-    } on AppwriteException catch (e) {
-      // debugPrint("GET CATEGORY PRODUCTS ERROR: $e");
-      if (e.code == 401) rethrow;
+      if (newProducts.length < _limit) _categoryHasMore = false;
     } catch (e) {
       // debugPrint("GET CATEGORY PRODUCTS ERROR: $e");
     } finally {
@@ -276,49 +261,36 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final rows = await ApiHelper.guard(
-        () => AppwriteConfig.tablesDB.listRows(
-          databaseId: AppwriteConfig.databaseId,
-          tableId: AppwriteConfig.product,
-          queries: [
-            Query.equal('category', category),
-            Query.equal('status', 'approved'),
-            Query.orderDesc("\$createdAt"),
-            Query.limit(_limit),
-            Query.offset(_exploreOffset),
-          ],
-        ),
+      final rows = await _publicTablesDB().listRows(
+        databaseId: AppwriteConfig.databaseId,
+        tableId: AppwriteConfig.product,
+        queries: [
+          Query.equal('category', category),
+          Query.equal('status', 'approved'),
+          Query.orderDesc("\$createdAt"),
+          Query.limit(_limit),
+          Query.offset(_exploreOffset),
+        ],
       );
-
-      if (rows == null) return;
 
       final newProducts =
           rows.rows.map((row) => ProductModel.fromMap(row.data)).toList();
 
-      // ✅ Add immediately for fast UI
       _exploreProducts.addAll(newProducts);
       notifyListeners();
 
-      // ✅ Take snapshot BEFORE ranking
       final snapshot = List<ProductModel>.from(_exploreProducts);
 
-      // ✅ Rank in background safely
       Future(() async {
         final ranked = await rankProductsInBackground(snapshot, viewedIds);
-
         _exploreProducts
           ..clear()
           ..addAll(ranked);
-
         notifyListeners();
       });
 
       _exploreOffset += newProducts.length;
-
       if (newProducts.length < _limit) _exploreHasMore = false;
-    } on AppwriteException catch (e) {
-      // debugPrint("GET EXPLORE PRODUCTS ERROR: $e");
-      if (e.code == 401) rethrow;
     } catch (e) {
       // debugPrint("GET EXPLORE PRODUCTS ERROR: $e");
     } finally {
@@ -344,44 +316,32 @@ class ProductProvider extends ChangeNotifier {
       _searchResults.clear();
       _searchHasMore = true;
       _lastQuery = trimmed;
-      // ✅ No notify here — batched into the one below
     }
 
     if (!_searchHasMore) return;
 
-    // ✅ Single notify covers reset state + fetching flag
     _isSearchFetchingMore = true;
     notifyListeners();
 
     try {
-      final rows = await ApiHelper.guard(
-        () => AppwriteConfig.tablesDB.listRows(
-          databaseId: AppwriteConfig.databaseId,
-          tableId: AppwriteConfig.product,
-          queries: [
-            Query.equal('status', 'approved'),
-            Query.contains('title', trimmed),
-            Query.orderDesc("\$createdAt"),
-            Query.limit(_limit),
-            Query.offset(_searchOffset),
-          ],
-        ),
+      final rows = await _publicTablesDB().listRows(
+        databaseId: AppwriteConfig.databaseId,
+        tableId: AppwriteConfig.product,
+        queries: [
+          Query.equal('status', 'approved'),
+          Query.contains('title', trimmed),
+          Query.orderDesc("\$createdAt"),
+          Query.limit(_limit),
+          Query.offset(_searchOffset),
+        ],
       );
-
-      if (rows == null) return;
 
       final newProducts =
           rows.rows.map((row) => ProductModel.fromMap(row.data)).toList();
 
       _searchResults.addAll(newProducts);
       _searchOffset += newProducts.length;
-
-      if (newProducts.length < _limit) {
-        _searchHasMore = false;
-      }
-    } on AppwriteException catch (e) {
-      // debugPrint("SEARCH PRODUCTS ERROR: $e");
-      if (e.code == 401) rethrow;
+      if (newProducts.length < _limit) _searchHasMore = false;
     } catch (e) {
       // debugPrint("SEARCH PRODUCTS ERROR: $e");
     } finally {
@@ -402,20 +362,12 @@ class ProductProvider extends ChangeNotifier {
   // ===================== GET SINGLE PRODUCT =====================
   Future<ProductModel?> getProduct(String productId) async {
     try {
-      final row = await ApiHelper.guard(
-        () => AppwriteConfig.tablesDB.getRow(
-          databaseId: AppwriteConfig.databaseId,
-          tableId: AppwriteConfig.product,
-          rowId: productId,
-        ),
+      final row = await _publicTablesDB().getRow(
+        databaseId: AppwriteConfig.databaseId,
+        tableId: AppwriteConfig.product,
+        rowId: productId,
       );
-
-      if (row == null) return null;
       return ProductModel.fromMap(row.data);
-    } on AppwriteException catch (e) {
-      // debugPrint("GET PRODUCT ERROR: $e");
-      if (e.code == 401) rethrow;
-      return null;
     } catch (e) {
       // debugPrint("GET PRODUCT ERROR: $e");
       return null;
@@ -423,32 +375,27 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // ===================== DELETE PRODUCT =====================
+  // ✅ Authenticated action — uses _callFunction (requires login)
   Future<void> deleteProduct(String productId, String userId) async {
-    try {
-      final result = await _callFunction({
-        'action': 'deleteProduct',
-        'userId': userId,
-        'productId': productId,
-      });
+    final result = await _callFunction({
+      'action': 'deleteProduct',
+      'userId': userId,
+      'productId': productId,
+    });
 
-      if (result['status'] != true) {
-        throw Exception(result['message'] ?? 'Failed to delete product.');
-      }
-
-      _products.removeWhere((p) => p.productId == productId);
-      _categoryProducts.removeWhere((p) => p.productId == productId);
-      _searchResults.removeWhere((p) => p.productId == productId);
-      notifyListeners();
-    } on AppwriteException catch (e) {
-      // debugPrint("DELETE PRODUCT ERROR: $e");
-      if (e.code == 401) rethrow;
-    } catch (e) {
-      // debugPrint("DELETE PRODUCT ERROR: $e");
-      rethrow;
+    if (result == null) throw Exception('Not authenticated.');
+    if (result['status'] != true) {
+      throw Exception(result['message'] ?? 'Failed to delete product.');
     }
+
+    _products.removeWhere((p) => p.productId == productId);
+    _categoryProducts.removeWhere((p) => p.productId == productId);
+    _searchResults.removeWhere((p) => p.productId == productId);
+    notifyListeners();
   }
 
   // ===================== TOGGLE LIKE =====================
+  // ✅ Authenticated action — requires login
   Future<void> toggleLike({
     required String productId,
     required String userId,
@@ -484,8 +431,9 @@ class ProductProvider extends ChangeNotifier {
 
     final updated = product.copyWith(
       likedBy: likedBy,
-      likes:
-          isLiking ? product.likes + 1 : (product.likes - 1).clamp(0, 999999),
+      likes: isLiking
+          ? product.likes + 1
+          : ((product.likes - 1).clamp(0, 999999) as int),
     );
 
     for (final entry in foundIndices.entries) {
@@ -494,7 +442,6 @@ class ProductProvider extends ChangeNotifier {
       list.insert(0, updated);
     }
 
-    // ✅ Notify #1 — optimistic update shown immediately
     notifyListeners();
 
     try {
@@ -504,75 +451,59 @@ class ProductProvider extends ChangeNotifier {
         'productId': productId,
       });
 
-      if (result['status'] != true) {
-        throw Exception('Failed to toggle like');
+      if (result == null) {
+        // Not authenticated — rollback optimistic update
+        _rollback(foundIndices, originals);
+        notifyListeners();
+        return;
       }
+
+      if (result['status'] != true) throw Exception('Failed to toggle like');
 
       final data = result['data'] ?? {};
       final bool backendLiked = data['liked'] ?? isLiking;
       final int backendLikes = data['likes'] ?? updated.likes;
 
       final correctedLikedBy = List<String>.from(updated.likedBy);
-
       if (backendLiked && !correctedLikedBy.contains(userId)) {
         correctedLikedBy.add(userId);
       } else if (!backendLiked && correctedLikedBy.contains(userId)) {
         correctedLikedBy.remove(userId);
       }
 
-      // ✅ Only re-notify if backend data differs from optimistic update
       if (backendLikes != updated.likes || backendLiked != isLiking) {
         final correctedProduct = updated.copyWith(
           likedBy: correctedLikedBy,
           likes: backendLikes,
         );
-
         for (final entry in foundIndices.entries) {
           final list = entry.key;
           list.removeWhere((p) => p.productId == productId);
           list.insert(0, correctedProduct);
         }
-
-        // ✅ Notify #2 — only fires if correction needed
         notifyListeners();
       }
-    } on AppwriteException catch (e) {
-      // ❌ ROLLBACK
-      for (final entry in foundIndices.entries) {
-        final list = entry.key;
-        final originalItem = originals[list]!;
-        final originalIndex = entry.value;
-
-        list.removeWhere((p) => p.productId == productId);
-
-        if (originalIndex >= 0 && originalIndex <= list.length) {
-          list.insert(originalIndex, originalItem);
-        } else {
-          list.add(originalItem);
-        }
-      }
-
-      notifyListeners();
-      // debugPrint("TOGGLE LIKE ERROR: $e");
-      if (e.code == 401) rethrow;
     } catch (e) {
-      // ❌ ROLLBACK
-      for (final entry in foundIndices.entries) {
-        final list = entry.key;
-        final originalItem = originals[list]!;
-        final originalIndex = entry.value;
-
-        list.removeWhere((p) => p.productId == productId);
-
-        if (originalIndex >= 0 && originalIndex <= list.length) {
-          list.insert(originalIndex, originalItem);
-        } else {
-          list.add(originalItem);
-        }
-      }
-
+      _rollback(foundIndices, originals);
       notifyListeners();
       // debugPrint("TOGGLE LIKE ERROR: $e");
+    }
+  }
+
+  void _rollback(
+    Map<List<ProductModel>, int> foundIndices,
+    Map<List<ProductModel>, ProductModel> originals,
+  ) {
+    for (final entry in foundIndices.entries) {
+      final list = entry.key;
+      final originalItem = originals[list]!;
+      final originalIndex = entry.value;
+      list.removeWhere((p) => p.productId == originalItem.productId);
+      if (originalIndex >= 0 && originalIndex <= list.length) {
+        list.insert(originalIndex, originalItem);
+      } else {
+        list.add(originalItem);
+      }
     }
   }
 
@@ -584,9 +515,7 @@ class ProductProvider extends ChangeNotifier {
         'userId': userId,
       });
 
-      if (result['status'] != true) {
-        throw Exception(result['message'] ?? 'Failed to clear likes.');
-      }
+      if (result == null || result['status'] != true) return;
 
       likedProductIds.clear();
 
@@ -608,7 +537,6 @@ class ProductProvider extends ChangeNotifier {
       resetLikesInList(_exploreProducts);
       resetLikesInList(_onboardingProducts);
 
-      // ✅ Single notify after all lists are updated
       notifyListeners();
     } catch (e) {
       // debugPrint("CLEAR ALL LIKES ERROR: $e");
@@ -630,7 +558,6 @@ class ProductProvider extends ChangeNotifier {
     resetList(_exploreProducts);
     resetList(_onboardingProducts);
 
-    // ✅ Single notify after all lists are reset
     notifyListeners();
   }
 
@@ -640,12 +567,10 @@ class ProductProvider extends ChangeNotifier {
         'action': 'getUserLikes',
         'userId': userId,
       });
-
-      if (result['status'] == true) {
+      if (result != null && result['status'] == true) {
         final List data = result['data'] ?? [];
         return data.map((e) => e['productId'].toString()).toSet();
       }
-
       return {};
     } catch (e) {
       // debugPrint("GET USER LIKES ERROR: $e");
@@ -687,8 +612,6 @@ class ProductProvider extends ChangeNotifier {
         ..addAll(
           rawList.map((e) => ProductModel.fromMap(e as Map<String, dynamic>)),
         );
-    } on AppwriteException catch (e) {
-      // debugPrint("ONBOARDING PRODUCTS ERROR (Appwrite): $e");
     } catch (e) {
       // debugPrint("ONBOARDING PRODUCTS ERROR: $e");
     } finally {
@@ -728,44 +651,32 @@ class ProductProvider extends ChangeNotifier {
       _searchResults.clear();
       _searchHasMore = true;
       _lastQuery = trimmed;
-      // ✅ No notify here — batched into the one below
     }
 
     if (!_searchHasMore) return;
 
-    // ✅ Single notify covers reset state + fetching flag
     _isSearchFetchingMore = true;
     notifyListeners();
 
     try {
-      final rows = await ApiHelper.guard(
-        () => AppwriteConfig.tablesDB.listRows(
-          databaseId: AppwriteConfig.databaseId,
-          tableId: AppwriteConfig.product,
-          queries: [
-            Query.equal('status', 'approved'),
-            Query.equal('category', trimmed),
-            Query.orderDesc("\$createdAt"),
-            Query.limit(_limit),
-            Query.offset(_searchOffset),
-          ],
-        ),
+      final rows = await _publicTablesDB().listRows(
+        databaseId: AppwriteConfig.databaseId,
+        tableId: AppwriteConfig.product,
+        queries: [
+          Query.equal('status', 'approved'),
+          Query.equal('category', trimmed),
+          Query.orderDesc("\$createdAt"),
+          Query.limit(_limit),
+          Query.offset(_searchOffset),
+        ],
       );
-
-      if (rows == null) return;
 
       final newProducts =
           rows.rows.map((row) => ProductModel.fromMap(row.data)).toList();
 
       _searchResults.addAll(newProducts);
       _searchOffset += newProducts.length;
-
-      if (newProducts.length < _limit) {
-        _searchHasMore = false;
-      }
-    } on AppwriteException catch (e) {
-      // debugPrint("SEARCH BY CATEGORY ERROR: $e");
-      if (e.code == 401) rethrow;
+      if (newProducts.length < _limit) _searchHasMore = false;
     } catch (e) {
       // debugPrint("SEARCH BY CATEGORY ERROR: $e");
     } finally {
@@ -792,44 +703,32 @@ class ProductProvider extends ChangeNotifier {
       _searchResults.clear();
       _searchHasMore = true;
       _lastQuery = trimmed;
-      // ✅ No notify here — batched into the one below
     }
 
     if (!_searchHasMore) return;
 
-    // ✅ Single notify covers reset state + fetching flag
     _isSearchFetchingMore = true;
     notifyListeners();
 
     try {
-      final rows = await ApiHelper.guard(
-        () => AppwriteConfig.tablesDB.listRows(
-          databaseId: AppwriteConfig.databaseId,
-          tableId: AppwriteConfig.product,
-          queries: [
-            Query.equal('status', 'approved'),
-            Query.equal('sellerName', trimmed),
-            Query.orderDesc("\$createdAt"),
-            Query.limit(_limit),
-            Query.offset(_searchOffset),
-          ],
-        ),
+      final rows = await _publicTablesDB().listRows(
+        databaseId: AppwriteConfig.databaseId,
+        tableId: AppwriteConfig.product,
+        queries: [
+          Query.equal('status', 'approved'),
+          Query.equal('sellerName', trimmed),
+          Query.orderDesc("\$createdAt"),
+          Query.limit(_limit),
+          Query.offset(_searchOffset),
+        ],
       );
-
-      if (rows == null) return;
 
       final newProducts =
           rows.rows.map((row) => ProductModel.fromMap(row.data)).toList();
 
       _searchResults.addAll(newProducts);
       _searchOffset += newProducts.length;
-
-      if (newProducts.length < _limit) {
-        _searchHasMore = false;
-      }
-    } on AppwriteException catch (e) {
-      // debugPrint("SEARCH BY SELLER ERROR: $e");
-      if (e.code == 401) rethrow;
+      if (newProducts.length < _limit) _searchHasMore = false;
     } catch (e) {
       // debugPrint("SEARCH BY SELLER ERROR: $e");
     } finally {

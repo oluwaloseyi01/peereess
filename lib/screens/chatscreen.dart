@@ -8,6 +8,7 @@ import 'package:peereess/provider/auth_provider.dart';
 import 'package:peereess/provider/chatlistprovider.dart';
 import 'package:peereess/provider/product_provider.dart';
 import 'package:peereess/screens/widgets/addtocart_widget.dart';
+import 'package:peereess/screens/widgets/imagepreview.dart';
 import 'package:peereess/screens/widgets/inappcamera.dart';
 import 'package:peereess/screens/widgets/loadingwidget.dart';
 import 'package:provider/provider.dart';
@@ -202,8 +203,28 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       if (Platform.isAndroid) {
         final LostDataResponse response = await _picker.retrieveLostData();
+
         if (response.file != null && mounted) {
-          await _sendMessage(imageFile: File(response.file!.path));
+          final File imageFile = File(response.file!.path);
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ImagePreviewScreen(
+                imageFile: imageFile,
+                retakeText: 'Reselect',
+                onRetake: () async {
+                  Navigator.pop(context);
+                  _pickFromGallery();
+                },
+                onSend: () async {
+                  Navigator.pop(context);
+                  await _sendMessage(imageFile: imageFile);
+                },
+              ),
+            ),
+          );
+
           return;
         }
       }
@@ -216,7 +237,25 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (pickedFile != null && mounted) {
-        await _sendMessage(imageFile: File(pickedFile.path));
+        final File imageFile = File(pickedFile.path);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImagePreviewScreen(
+              imageFile: imageFile,
+              retakeText: 'Reselect',
+              onRetake: () async {
+                Navigator.pop(context);
+                _pickFromGallery();
+              },
+              onSend: () async {
+                Navigator.pop(context);
+                await _sendMessage(imageFile: imageFile);
+              },
+            ),
+          ),
+        );
       }
     } catch (e) {
       debugPrint("Image pick error: $e");

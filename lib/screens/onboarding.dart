@@ -77,6 +77,17 @@ class _OnboardingState extends State<Onboarding> with TickerProviderStateMixin {
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
               ),
+              // "Skip" on page 1 → go directly to home
+              onAltAction: () async {
+                await _completeOnboarding();
+                if (mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/home',
+                    (_) => false,
+                  );
+                }
+              },
             ),
 
             // ── Page 2 (last) ──
@@ -90,8 +101,8 @@ class _OnboardingState extends State<Onboarding> with TickerProviderStateMixin {
               activeIndex: 1,
               isLastPage: true,
               spinImage: true,
+              // "Get Started" → go to signup
               onNext: () async {
-                // "Get Started" → go to signup
                 await _completeOnboarding();
                 if (mounted) {
                   Navigator.pushNamedAndRemoveUntil(
@@ -101,8 +112,8 @@ class _OnboardingState extends State<Onboarding> with TickerProviderStateMixin {
                   );
                 }
               },
+              // "Login" → go to login
               onAltAction: () async {
-                // "Login" → go to login
                 await _completeOnboarding();
                 if (mounted) {
                   Navigator.pushNamedAndRemoveUntil(

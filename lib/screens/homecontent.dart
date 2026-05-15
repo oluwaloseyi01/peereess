@@ -8,6 +8,7 @@ import 'package:peereess/provider/filter_provider.dart';
 import 'package:peereess/provider/product_provider.dart';
 import 'package:peereess/provider/productupload_provider.dart';
 import 'package:peereess/provider/productview.dart';
+import 'package:peereess/screens/widgets/authcheck.dart';
 import 'package:peereess/screens/widgets/category_widget.dart';
 import 'package:peereess/screens/widgets/loadingwidget.dart';
 import 'package:peereess/screens/widgets/product_widget.dart';
@@ -15,8 +16,6 @@ import 'package:peereess/screens/widgets/skeletonwidget.dart';
 import 'package:peereess/screens/widgets/ziprefresh.dart';
 import 'package:provider/provider.dart';
 
-// ✅ FIX 2: Categories is static data — define once as a top-level constant,
-// never rebuilt inside build()
 const _kCategories = [
   {"title": "Bag", "image": AppImages.bagg, "type": "bag"},
   {"title": "Beauty", "image": AppImages.beauty, "type": "beauty"},
@@ -75,10 +74,9 @@ class _HomecontentState extends State<Homecontent> {
       }
     });
 
-    // ✅ Initial product load — only once, only when logged in
+    // ✅ Load products immediately — no auth required for public browsing
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = context.read<AuthProvider>();
-      if (auth.isLoggedIn && !_productsLoaded) {
+      if (!_productsLoaded) {
         _loadProducts();
       }
     });
@@ -86,7 +84,6 @@ class _HomecontentState extends State<Homecontent> {
 
   Future<void> _onRefreshNotified() async {
     await _doRefresh();
-
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
@@ -160,8 +157,13 @@ class _HomecontentState extends State<Homecontent> {
                           child: SizedBox(
                             height: 36,
                             child: TextField(
-                              onTap: () =>
-                                  Navigator.pushNamed(context, '/searchscreen'),
+                              onTap: () {
+                                if (!authProvider.isLoggedIn) {
+                                  AuthPromptSheet.show(context);
+                                } else {
+                                  Navigator.pushNamed(context, '/searchscreen');
+                                }
+                              },
                               readOnly: true,
                               style: const TextStyle(color: Colors.grey),
                               decoration: InputDecoration(
@@ -199,7 +201,13 @@ class _HomecontentState extends State<Homecontent> {
                         ),
                         5.getWidthWhiteSpacing,
                         GestureDetector(
-                          onTap: () => Navigator.pushNamed(context, '/save'),
+                          onTap: () {
+                            if (!authProvider.isLoggedIn) {
+                              AuthPromptSheet.show(context);
+                            } else {
+                              Navigator.pushNamed(context, '/save');
+                            }
+                          },
                           child: Stack(
                             clipBehavior: Clip.none,
                             children: [
@@ -246,7 +254,13 @@ class _HomecontentState extends State<Homecontent> {
                         ),
                         5.getWidthWhiteSpacing,
                         GestureDetector(
-                          onTap: () => Navigator.pushNamed(context, '/filter'),
+                          onTap: () {
+                            if (!authProvider.isLoggedIn) {
+                              AuthPromptSheet.show(context);
+                            } else {
+                              Navigator.pushNamed(context, '/filter');
+                            }
+                          },
                           child: Container(
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
@@ -265,14 +279,7 @@ class _HomecontentState extends State<Homecontent> {
                       ],
                     ),
                   ),
-
-                  // ── Scrollable content with RefreshIndicator ────────
                   Expanded(
-                    //  child: RefreshIndicator(
-                    //   onRefresh: _doRefresh,
-                    //   color: const Color(0xff9D6E2D),
-                    //   backgroundColor: const Color.fromARGB(255, 236, 216, 191),
-                    //   displacement: 20,
                     child: ZipperRefreshWrapper(
                       onRefresh: _doRefresh,
                       child: SingleChildScrollView(
@@ -285,7 +292,6 @@ class _HomecontentState extends State<Homecontent> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // ── Categories ──────────────────────────────
-                            // ✅ FIX 2: _kCategories is now a top-level const
                             isTablet
                                 ? Row(
                                     mainAxisAlignment:
@@ -299,8 +305,6 @@ class _HomecontentState extends State<Homecontent> {
                                               '/categoryscreen',
                                               arguments: {
                                                 'type': cat['type']!,
-                                                // ✅ FIX 1: use productProvider
-                                                // directly — no second lookup
                                                 'allProducts':
                                                     productProvider.products,
                                               },
@@ -327,7 +331,6 @@ class _HomecontentState extends State<Homecontent> {
                                                   '/categoryscreen',
                                                   arguments: {
                                                     'type': cat['type']!,
-                                                    // ✅ FIX 1: same here
                                                     'allProducts':
                                                         productProvider
                                                             .products,
@@ -357,57 +360,13 @@ class _HomecontentState extends State<Homecontent> {
                                   ),
                                   10.getHeightWhiteSpacing,
 
-                                  // ── Products grid / skeleton / empty state
-                                  if (!authProvider.isInitialized)
-                                    const SizedBox(
-                                        height: 40) // auth not ready yet
-                                  else if (isOffline)
-                                    MasonryGridView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          const SliverSimpleGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                      ),
-                                      mainAxisSpacing: 8,
-                                      crossAxisSpacing: 5,
-                                      itemCount: 14,
-                                      itemBuilder: (context, index) {
-                                        return SizedBox(
-                                          height: 210,
-                                          child: ProductWidget(
-                                            product: dummyProduct,
-                                            allProducts: const [],
-                                            isLoading: true,
-                                          ),
-                                        );
-                                      },
-                                    )
+                                  // ✅ No longer blocks on !authProvider.isInitialized
+                                  // Products are public — show skeleton while loading,
+                                  // show products as soon as they arrive.
+                                  if (isOffline)
+                                    _buildSkeletonGrid()
                                   else if (isLoading && productsToShow.isEmpty)
-                                    MasonryGridView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          const SliverSimpleGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                      ),
-                                      mainAxisSpacing: 8,
-                                      crossAxisSpacing: 5,
-                                      itemCount: 14,
-                                      itemBuilder: (context, index) {
-                                        return SizedBox(
-                                          height:
-                                              210, // 150 (image) + 60 (text section)
-                                          child: ProductWidget(
-                                            product: dummyProduct,
-                                            allProducts: const [],
-                                            isLoading: true,
-                                          ),
-                                        );
-                                      },
-                                    )
+                                    _buildSkeletonGrid()
                                   else if (!isLoading && productsToShow.isEmpty)
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
@@ -415,7 +374,7 @@ class _HomecontentState extends State<Homecontent> {
                                       child:
                                           Center(child: LogoLoadingIndicator()),
                                     )
-                                  else // show actual products
+                                  else
                                     MasonryGridView.builder(
                                       shrinkWrap: true,
                                       physics:
@@ -437,7 +396,6 @@ class _HomecontentState extends State<Homecontent> {
                                       },
                                     ),
 
-                                  // ── Load more footer
                                   if (productProvider.isFetchingMore)
                                     const Padding(
                                       padding:
@@ -450,10 +408,7 @@ class _HomecontentState extends State<Homecontent> {
                                   20.getHeightWhiteSpacing,
                                 ],
                               ),
-                            )
-
-                            // ── Trending Collection Header ──
-                            // ── Trending collection header
+                            ),
                           ],
                         ),
                       ),
@@ -492,6 +447,29 @@ class _HomecontentState extends State<Homecontent> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSkeletonGrid() {
+    return MasonryGridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverSimpleGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+      ),
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 5,
+      itemCount: 14,
+      itemBuilder: (context, index) {
+        return SizedBox(
+          height: 210,
+          child: ProductWidget(
+            product: dummyProduct,
+            allProducts: const [],
+            isLoading: true,
+          ),
+        );
+      },
     );
   }
 }

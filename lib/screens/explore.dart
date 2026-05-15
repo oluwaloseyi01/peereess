@@ -52,6 +52,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
     selectedCategory = categories.first['label'] as String;
     _productProvider = context.read<ProductProvider>();
 
+    // ✅ Load explore products for everyone — no auth required
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _productProvider.getExploreProducts(selectedCategory);
     });
@@ -109,6 +110,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
     final productProvider = context.watch<ProductProvider>();
     final authProvider = context.watch<AuthProvider>();
 
+    // ✅ No internet
     if (!authProvider.isConnected) {
       return Container(
         decoration: const BoxDecoration(
@@ -346,8 +348,8 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Wrap(
-                    spacing: 4, // horizontal space between items
-                    runSpacing: 4, // vertical space between rows
+                    spacing: 4,
+                    runSpacing: 4,
                     children: categories.map((cat) {
                       final label = cat['label'] as String;
                       final isSelected = selectedCategory == label;

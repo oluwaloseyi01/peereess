@@ -8,6 +8,7 @@ import 'package:peereess/provider/auth_provider.dart';
 import 'package:peereess/screens/chatscreen.dart';
 
 import 'package:peereess/screens/widgets/addtocart_widget.dart';
+import 'package:peereess/screens/widgets/authcheck.dart';
 import 'package:peereess/screens/widgets/deliveryday.dart';
 import 'package:peereess/screens/widgets/loadingwidget.dart';
 import 'package:peereess/screens/widgets/product_collectionwidget.dart';
@@ -30,15 +31,10 @@ class ProductDetails extends StatefulWidget {
 class _ProductDetailsState extends State<ProductDetails> {
   int currentIndex = 0;
   List<ProductModel> filteredProducts = [];
-  final formatter = NumberFormat(
-    "#,##0",
-    "en_US",
-  ); // formats numbers with commas
+  final formatter = NumberFormat("#,##0", "en_US");
 
-  /// ✅ BASE PRICE (NO VARIANTS)
   double get basePrice => widget.product.price;
 
-  /// ✅ FINAL PRICE WITH DISCOUNT
   double get finalPrice {
     final discount = widget.product.discount ?? 0;
     if (discount == 0) return basePrice;
@@ -61,9 +57,15 @@ class _ProductDetailsState extends State<ProductDetails> {
     });
   }
 
+  /// Shows a login prompt bottom sheet when a guest taps a protected action
+  void _showLoginPrompt() {
+    AuthPromptSheet.show(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final isLoggedIn = authProvider.isLoggedIn;
 
     if (!authProvider.isConnected) {
       return Container(
@@ -115,7 +117,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                 children: [
                                   Container(
                                     decoration: BoxDecoration(
-                                      color: Color(0xff9D6E2D),
+                                      color: const Color(0xff9D6E2D),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Padding(
@@ -157,7 +159,7 @@ class _ProductDetailsState extends State<ProductDetails> {
 
                         10.getHeightWhiteSpacing,
 
-                        /// TITLE
+                        // TITLE
                         Text(
                           product.title,
                           style: const TextStyle(
@@ -167,11 +169,11 @@ class _ProductDetailsState extends State<ProductDetails> {
                           ),
                         ),
 
-                        /// PRICE
+                        // PRICE
                         Row(
                           children: [
                             Text(
-                              "₦${formatter.format(finalPrice)}", // <--- formatted
+                              "₦${formatter.format(finalPrice)}",
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 17,
@@ -181,7 +183,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                             if ((product.discount ?? 0) > 0) ...[
                               const SizedBox(width: 8),
                               Text(
-                                "₦${formatter.format(basePrice)}", // <--- formatted
+                                "₦${formatter.format(basePrice)}",
                                 style: const TextStyle(
                                   decoration: TextDecoration.lineThrough,
                                   color: Colors.grey,
@@ -200,8 +202,6 @@ class _ProductDetailsState extends State<ProductDetails> {
                               starSize: 14,
                             ),
                           ),
-
-                        // ✅ ADD STOCK WIDGET HERE
 
                         5.getHeightWhiteSpacing,
                         Wrap(
@@ -224,7 +224,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                               child: Text(
                                 color,
                                 style: const TextStyle(
-                                  color: const Color(0xff9D6E2D),
+                                  color: Color(0xff9D6E2D),
                                   fontFamily: 'poppins',
                                   fontSize: 9,
                                 ),
@@ -235,7 +235,7 @@ class _ProductDetailsState extends State<ProductDetails> {
 
                         15.getHeightWhiteSpacing,
 
-                        /// DESCRIPTION
+                        // DESCRIPTION
                         const Text(
                           "Description",
                           style: TextStyle(
@@ -245,7 +245,8 @@ class _ProductDetailsState extends State<ProductDetails> {
                         ),
                         Text(
                           product.description,
-                          style: TextStyle(fontSize: 12, color: Colors.black54),
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.black54),
                         ),
 
                         DeliveryDayWidget(deliveryDays: product.deliveryDays),
@@ -255,8 +256,8 @@ class _ProductDetailsState extends State<ProductDetails> {
                   ),
                   DeliveryInfoWidget(product: product),
                   20.getHeightWhiteSpacing,
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8.0),
                     child: Text(
                       "Recommended for you",
                       style: TextStyle(
@@ -289,8 +290,6 @@ class _ProductDetailsState extends State<ProductDetails> {
           ),
         ),
       ),
-
-      /// ✅ BOTTOM SHEET — UNCHANGED
       bottomNavigationBar: Container(
         color: Colors.white,
         child: SafeArea(
@@ -299,8 +298,13 @@ class _ProductDetailsState extends State<ProductDetails> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // ── MESSAGE BUTTON ─────────────────────────────
                 GestureDetector(
                   onTap: () {
+                    if (!isLoggedIn) {
+                      _showLoginPrompt();
+                      return;
+                    }
                     final currentUserId = context.read<AuthProvider>().userId;
                     if (currentUserId == null) return;
 
@@ -330,18 +334,27 @@ class _ProductDetailsState extends State<ProductDetails> {
                       ],
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Icon(IconsaxPlusLinear.message, size: 22),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Icon(
+                        IconsaxPlusLinear.message,
+                        size: 22,
+                        // ✅ Dim icon for guests
+                        color: isLoggedIn ? Colors.black : Colors.grey,
+                      ),
                     ),
                   ),
                 ),
                 5.getWidthWhiteSpacing,
 
-                /// ADD TO CART
+                // ── ADD TO CART ────────────────────────────────
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
+                      if (!isLoggedIn) {
+                        _showLoginPrompt();
+                        return;
+                      }
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
@@ -381,28 +394,41 @@ class _ProductDetailsState extends State<ProductDetails> {
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xff9D6E2D)),
+                        border: Border.all(
+                          color: isLoggedIn
+                              ? const Color(0xff9D6E2D)
+                              : Colors.grey,
+                        ),
                       ),
-                      child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 20,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 20,
+                        ),
+                        child: Text(
+                          "Add cart",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isLoggedIn
+                                ? const Color(0xff9D6E2D)
+                                : Colors.grey,
+                            fontFamily: "poppins",
                           ),
-                          child: Text(
-                            "Add cart",
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: const Color(0xff9D6E2D),
-                                fontFamily: "poppins"),
-                          )),
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 5.getWidthWhiteSpacing,
 
+                // ── ORDER NOW ──────────────────────────────────
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
+                      if (!isLoggedIn) {
+                        _showLoginPrompt();
+                        return;
+                      }
                       final screenContext = context;
                       showModalBottomSheet(
                         context: context,
@@ -444,20 +470,24 @@ class _ProductDetailsState extends State<ProductDetails> {
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        color: Color(0xff9D6E2D),
+                        color: isLoggedIn
+                            ? const Color(0xff9D6E2D)
+                            : Colors.grey.shade400,
                       ),
                       child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 20,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 20,
+                        ),
+                        child: Text(
+                          "Order now",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontFamily: "poppins",
+                            color: Colors.white,
                           ),
-                          child: Text(
-                            "Order now",
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontFamily: "poppins",
-                                color: Colors.white),
-                          )),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -469,3 +499,6 @@ class _ProductDetailsState extends State<ProductDetails> {
     );
   }
 }
+
+
+//required

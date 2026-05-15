@@ -64,18 +64,14 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
     }
   }
 
-  // ✅ Request permission and get FCM token after internet is confirmed
   Future<void> _setupFirebaseMessaging() async {
     try {
       final messaging = FirebaseMessaging.instance;
-
-      // Request notification permission
       final settings = await messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
-
       print('🔔 Notification permission: ${settings.authorizationStatus}');
     } catch (e) {
       print('⚠️ Firebase Messaging setup failed: $e');
@@ -83,6 +79,7 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
   }
 
   Future<void> _checkInternetAndNavigate() async {
+    // ── 1. Wait for internet ────────────────────────────────────
     while (true) {
       if (!mounted || _navigated) return;
 
@@ -114,23 +111,25 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
 
     if (!mounted || _navigated) return;
 
-    // ✅ Request notification permission
+    // ── 2. Request notification permission ─────────────────────
     await _setupFirebaseMessaging();
 
     if (!mounted || _navigated) return;
 
+    // ── 3. Restore session (if any) ─────────────────────────────
     final auth = context.read<AuthProvider>();
     await auth.initAuth();
 
     if (!mounted || _navigated) return;
 
-    // ✅ Register device with Appwrite if user is already logged in
+    // ── 4. Register device push token if logged in ──────────────
     if (auth.isLoggedIn) {
       await AppwriteConfig.registerDevice();
     }
 
     if (!mounted || _navigated) return;
 
+    // ── 5. Check onboarding flag ────────────────────────────────
     final prefs = await SharedPreferences.getInstance();
     final seenOnboarding = prefs.getBool('seenOnboarding') ?? false;
 
@@ -138,27 +137,37 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
 
     _navigated = true;
 
+    // ── 6. Navigate ─────────────────────────────────────────────
+
+    // First-time user: show onboarding regardless of auth state
     if (!seenOnboarding) {
       Navigator.pushNamedAndRemoveUntil(context, '/onboarding', (_) => false);
       return;
     }
 
-    if (!auth.isLoggedIn) {
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+    // Logged-in user: route by role
+    if (auth.isLoggedIn) {
+      final role = auth.userType.toLowerCase().replaceAll('/', '');
+      switch (role) {
+        case 'admin':
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/adminhome', (_) => false);
+          break;
+        case 'seller':
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/sellerhome', (_) => false);
+          break;
+        default:
+          // Normal user — go to home feed
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      }
       return;
     }
 
-    final role = auth.userType.toLowerCase().replaceAll('/', '');
-    switch (role) {
-      case 'admin':
-        Navigator.pushNamedAndRemoveUntil(context, '/adminhome', (_) => false);
-        break;
-      case 'seller':
-        Navigator.pushNamedAndRemoveUntil(context, '/sellerhome', (_) => false);
-        break;
-      default:
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
-    }
+    // ✅ Not logged in — land on /home (public browse), NOT /login.
+    // Users can explore products freely; login is prompted only when
+    // they try to do something that requires an account (cart, chat, etc.).
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
   }
 
   @override

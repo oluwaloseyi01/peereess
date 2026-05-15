@@ -40,6 +40,7 @@ class _CartState extends State<Cart> {
     final auth = context.read<AuthProvider>();
     final cartProvider = context.read<CartProvider>();
 
+    // ✅ Don't fetch cart for guests
     final String? userId = auth.currentUserData?.userId;
     if (userId == null) return;
 
@@ -63,8 +64,74 @@ class _CartState extends State<Cart> {
     final authProvider = context.watch<AuthProvider>();
     final productProvider = context.read<ProductProvider>();
 
-    final bool hasUser = authProvider.currentUserData != null;
-    if (!hasUser && !authProvider.isConnected) {
+    // ✅ Guest — show sign-in prompt
+    if (!authProvider.isLoggedIn) {
+      return Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color.fromARGB(255, 217, 194, 162), Colors.white],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        IconsaxPlusLinear.shopping_cart,
+                        size: 60,
+                        color: Color(0xff9D6E2D),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Your cart is waiting",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'poppins',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Sign in to view your cart and checkout.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xff6A7686),
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      AppButtons(
+                        onPressed: () => Navigator.pushNamed(context, '/login'),
+                        text: "Login",
+                      ),
+                      const SizedBox(height: 12),
+                      Appbuttons2(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/signup'),
+                        text: "Create Account",
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ✅ No internet
+    if (!authProvider.isConnected) {
       return Container(
         width: double.infinity,
         height: double.infinity,
@@ -178,7 +245,7 @@ class _CartState extends State<Cart> {
                 ),
               ),
 
-              // ── SCROLLABLE BODY (everything scrolls under the header) ──
+              // ── SCROLLABLE BODY ────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
                   color: const Color(0xff9D6E2D),
