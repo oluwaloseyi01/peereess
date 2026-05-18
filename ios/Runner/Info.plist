@@ -30,6 +30,22 @@
 	<string>This app needs camera access to send photos in chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to send images in chat.</string>
+
+	<!-- ✅ Deep link: custom URL scheme peereess://product/PRODUCT_ID -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.peereess.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>peereess</string>
+			</array>
+		</dict>
+	</array>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

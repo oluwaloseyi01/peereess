@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:peereess/core/app_button.dart';
 import 'package:peereess/core/num_extension.dart';
@@ -8,6 +9,17 @@ import 'package:peereess/screens/temsofuse.dart';
 import 'package:peereess/screens/widgets/googlelogi.dart';
 import 'package:peereess/screens/widgets/loadingwidget.dart';
 import 'package:provider/provider.dart';
+
+const _kSignupPhrases = [
+  'Discover new arrivals...',
+  'Shop bestsellers...',
+  'Find coveted pieces...',
+  'Explore rare finds...',
+  'Browse curated styles...',
+  'Search top picks...',
+  'Uncover timeless classics...',
+  'Find what\'s trending...',
+];
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -32,6 +44,10 @@ class _SignupState extends State<Signup> {
   bool hasNumber = false;
   bool hasUpperLower = false;
 
+  // ── Animated hint ────────────────────────────────────────────────
+  int _phraseIndex = 0;
+  Timer? _phraseTimer;
+
   void validatePassword(String value) {
     password = value;
     setState(() {
@@ -52,7 +68,20 @@ class _SignupState extends State<Signup> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _phraseTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) {
+        setState(() {
+          _phraseIndex = (_phraseIndex + 1) % _kSignupPhrases.length;
+        });
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _phraseTimer?.cancel();
     super.dispose();
   }
 
@@ -68,7 +97,12 @@ class _SignupState extends State<Signup> {
     return 12;
   }
 
-  InputDecoration _inputDecor() => InputDecoration(
+  InputDecoration _inputDecor({String? hintText}) => InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(
+          color: Colors.grey.shade400,
+          fontSize: 13,
+        ),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         enabledBorder: OutlineInputBorder(
@@ -163,7 +197,7 @@ class _SignupState extends State<Signup> {
               return null;
             },
             style: const TextStyle(fontSize: 15),
-            decoration: _inputDecor(),
+            decoration: _inputDecor(hintText: "Your full name"),
           ),
           10.getHeightWhiteSpacing,
           const Text(
@@ -181,7 +215,7 @@ class _SignupState extends State<Signup> {
               return null;
             },
             style: const TextStyle(fontSize: 15),
-            decoration: _inputDecor(),
+            decoration: _inputDecor(hintText: "Your Email"),
           ),
           10.getHeightWhiteSpacing,
           const Text(
@@ -198,7 +232,7 @@ class _SignupState extends State<Signup> {
               return null;
             },
             style: const TextStyle(fontSize: 15),
-            decoration: _inputDecor(),
+            decoration: _inputDecor(hintText: "Your phone number"),
           ),
           20.getHeightWhiteSpacing,
           AppButtons(text: "Next", onPressed: () => _nextPage(_formKey1)),
@@ -273,7 +307,7 @@ class _SignupState extends State<Signup> {
                   return null;
                 },
                 style: const TextStyle(fontSize: 15),
-                decoration: _inputDecor(),
+                decoration: _inputDecor(hintText: "Create a password"),
               ),
               IconButton(
                 icon: Icon(
@@ -307,7 +341,7 @@ class _SignupState extends State<Signup> {
                   return null;
                 },
                 style: const TextStyle(fontSize: 15),
-                decoration: _inputDecor(),
+                decoration: _inputDecor(hintText: "Re-enter your password"),
               ),
               IconButton(
                 icon: Icon(
@@ -588,8 +622,9 @@ class _SignupState extends State<Signup> {
                           8.getHeightWhiteSpacing,
                           const Text(
                             "Let's make you a peereess member",
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 18,
                               fontFamily: 'poppins',
                               fontWeight: FontWeight.w600,
                             ),

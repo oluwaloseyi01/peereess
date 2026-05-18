@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
@@ -27,6 +28,17 @@ const _kCategories = [
   {"title": "Hair", "image": AppImages.hairr, "type": "hair"},
 ];
 
+const _kSearchPhrases = [
+  'Discover new arrivals...',
+  'Shop bestsellers...',
+  'Find coveted pieces...',
+  'Explore rare finds...',
+  'Browse curated styles...',
+  'Search top picks...',
+  'Uncover timeless classics...',
+  'Find what\'s trending...',
+];
+
 class Homecontent extends StatefulWidget {
   final ValueNotifier<int>? refreshNotifier;
   const Homecontent({super.key, this.refreshNotifier});
@@ -43,6 +55,10 @@ class _HomecontentState extends State<Homecontent> {
   bool _productsLoaded = false;
   int _lastKnownProductCount = 0;
   bool _isRefreshing = false;
+
+  // ── Animated hint ────────────────────────────────────────────────
+  int _phraseIndex = 0;
+  Timer? _phraseTimer;
 
   @override
   void initState() {
@@ -71,6 +87,15 @@ class _HomecontentState extends State<Homecontent> {
               context.read<UserProductViewProvider>().viewedProductIds;
           _productProvider.getProducts(loadMore: true, viewedIds: viewedIds);
         }
+      }
+    });
+
+    // ── Cycle hint text every 3 seconds ─────────────────────────────
+    _phraseTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) {
+        setState(() {
+          _phraseIndex = (_phraseIndex + 1) % _kSearchPhrases.length;
+        });
       }
     });
 
@@ -116,6 +141,7 @@ class _HomecontentState extends State<Homecontent> {
 
   @override
   void dispose() {
+    _phraseTimer?.cancel();
     widget.refreshNotifier?.removeListener(_onRefreshNotified);
     _scrollController.dispose();
     if (_productListener != null) {
@@ -167,9 +193,9 @@ class _HomecontentState extends State<Homecontent> {
                               readOnly: true,
                               style: const TextStyle(color: Colors.grey),
                               decoration: InputDecoration(
-                                hintText: 'Search peereess..',
+                                hintText: _kSearchPhrases[_phraseIndex],
                                 hintStyle: const TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   color: Colors.grey,
                                 ),
                                 prefixIcon: const Icon(

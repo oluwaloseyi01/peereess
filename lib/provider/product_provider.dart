@@ -70,8 +70,6 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // ===================== SERVER FUNCTION CALL =====================
-  // ✅ Only used for authenticated actions (like, delete, etc.)
-  // Returns null silently if the user is a guest — never throws session error
   Future<Map<String, dynamic>?> _callFunction(Map<String, dynamic> body) async {
     final res = await ApiHelper.guard(
       () => AppwriteConfig.functions.createExecution(
@@ -79,13 +77,11 @@ class ProductProvider extends ChangeNotifier {
         body: json.encode(body),
       ),
     );
-    if (res == null) return null; // ✅ guest or session expired — silent
+    if (res == null) return null;
     return json.decode(res.responseBody) as Map<String, dynamic>;
   }
 
   // ===================== PUBLIC CLIENT (no auth) =====================
-  // A fresh TablesDB with no session — used for all public product reads.
-  // Guests never trigger a 401 redirect loop when browsing home.
   static TablesDB _publicTablesDB() {
     final client = Client()
       ..setEndpoint(AppwriteConfig.endPoint)
@@ -114,7 +110,6 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // ✅ Use public client — works for both guests and logged-in users
       final rows = await _publicTablesDB().listRows(
         databaseId: AppwriteConfig.databaseId,
         tableId: AppwriteConfig.product,
@@ -374,8 +369,40 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  // ===================== FETCH PRODUCT BY ID (FOR DEEP LINKS) =====================
+  // First checks all in-memory lists, then falls back to a direct DB fetch.
+  // Uses the same public client pattern — works for guests too.
+  Future<ProductModel?> fetchProductById(String productId) async {
+    // ── 1. Check all in-memory lists first ──
+    final allLists = [
+      _products,
+      _categoryProducts,
+      _searchResults,
+      _exploreProducts,
+      _onboardingProducts,
+    ];
+
+    for (final list in allLists) {
+      try {
+        return list.firstWhere((p) => p.productId == productId);
+      } catch (_) {}
+    }
+
+    // ── 2. Not in memory — fetch directly from DB ──
+    try {
+      final row = await _publicTablesDB().getRow(
+        databaseId: AppwriteConfig.databaseId,
+        tableId: AppwriteConfig.product,
+        rowId: productId,
+      );
+      return ProductModel.fromMap(row.data);
+    } catch (e) {
+      debugPrint('❌ fetchProductById error: $e');
+      return null;
+    }
+  }
+
   // ===================== DELETE PRODUCT =====================
-  // ✅ Authenticated action — uses _callFunction (requires login)
   Future<void> deleteProduct(String productId, String userId) async {
     final result = await _callFunction({
       'action': 'deleteProduct',
@@ -395,7 +422,6 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // ===================== TOGGLE LIKE =====================
-  // ✅ Authenticated action — requires login
   Future<void> toggleLike({
     required String productId,
     required String userId,
@@ -452,7 +478,6 @@ class ProductProvider extends ChangeNotifier {
       });
 
       if (result == null) {
-        // Not authenticated — rollback optimistic update
         _rollback(foundIndices, originals);
         notifyListeners();
         return;

@@ -13,7 +13,7 @@ class CategoryWidget extends StatelessWidget {
     required this.onPressed,
     required this.image,
     required this.title,
-    this.backgroundColor = const Color.fromARGB(255, 225, 202, 169),
+    this.backgroundColor = const Color.fromARGB(255, 223, 197, 162),
     this.textColor = Colors.black,
   });
 

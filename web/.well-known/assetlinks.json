@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.peereess.app",
+      "sha256_cert_fingerprints": [
+        "22:E2:FF:5F:3B:94:13:DB:6B:C3:7A:E2:AD:3A:58:CC:28:15:D1:A2:E0:EC:76:38:07:4B:CF:D0:75:EE:A3:F8"
+      ]
+    }
+  }
+]

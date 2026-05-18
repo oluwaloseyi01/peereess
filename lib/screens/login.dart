@@ -63,12 +63,14 @@ class _LoginState extends State<Login> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               50.getHeightWhiteSpacing,
+
+                              // ── Brand ─────────────────────────────
                               Align(
                                 alignment: Alignment.center,
                                 child: AnimatedGradientText(
                                   text: "Peereess",
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.w700,
                                   fontFamily: "poppins",
                                   gradientColors: const [
                                     Color(0xFF604520),
@@ -76,28 +78,52 @@ class _LoginState extends State<Login> {
                                   ],
                                 ),
                               ),
-                              10.getHeightWhiteSpacing,
+
+                              // ── Tagline ───────────────────────────
+                              30.getHeightWhiteSpacing,
+
+                              // ── Heading ───────────────────────────
                               const Text(
                                 "Welcome back",
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 20,
                                   fontFamily: 'poppins',
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF2C1A0E),
                                 ),
                               ),
-                              10.getHeightWhiteSpacing,
+
+                              6.getHeightWhiteSpacing,
+
+                              // ── Sub-heading ───────────────────────
+                              Text(
+                                "Sign in to continue your shopping journey.",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontFamily: 'poppins',
+                                  color: Colors.grey.shade600,
+                                  height: 1.4,
+                                ),
+                              ),
+
+                              22.getHeightWhiteSpacing,
+
+                              // ── Email label ───────────────────────
                               const Text(
-                                "Email",
+                                "Email address",
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 12,
+                                  fontFamily: 'poppins',
                                 ),
                               ),
+                              4.getHeightWhiteSpacing,
                               TextFormField(
                                 controller: auth.emailController,
+                                keyboardType: TextInputType.emailAddress,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return "Email is required";
+                                    return "Enter your Email";
                                   }
                                   if (!value.contains("@") ||
                                       !value.contains(".")) {
@@ -105,12 +131,20 @@ class _LoginState extends State<Login> {
                                   }
                                   return null;
                                 },
-                                style: const TextStyle(fontSize: 15),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontFamily: 'poppins',
+                                ),
                                 decoration: InputDecoration(
+                                  hintText: "Email address",
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 13,
+                                  ),
                                   isDense: true,
                                   contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                    horizontal: 10,
+                                    vertical: 10,
+                                    horizontal: 12,
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
@@ -124,14 +158,19 @@ class _LoginState extends State<Login> {
                                   ),
                                 ),
                               ),
-                              15.getHeightWhiteSpacing,
+
+                              18.getHeightWhiteSpacing,
+
+                              // ── Password label ────────────────────
                               const Text(
                                 "Password",
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 12,
+                                  fontFamily: 'poppins',
                                 ),
                               ),
+                              4.getHeightWhiteSpacing,
                               Stack(
                                 alignment: Alignment.centerRight,
                                 children: [
@@ -140,20 +179,28 @@ class _LoginState extends State<Login> {
                                     obscureText: isObscurePass,
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return "Password is required";
+                                        return "Enter your password";
                                       }
-                                      if (value.length < 6) {
-                                        return "Password must not be less than 6 characters";
+                                      if (value.length < 4) {
+                                        return "Password must be at least 5 characters";
                                       }
                                       return null;
                                     },
-                                    style: const TextStyle(fontSize: 15),
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontFamily: 'poppins',
+                                    ),
                                     decoration: InputDecoration(
+                                      hintText: "*********",
+                                      hintStyle: TextStyle(
+                                        color: Colors.grey.shade400,
+                                        fontSize: 13,
+                                      ),
                                       isDense: true,
                                       contentPadding:
                                           const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                        horizontal: 10,
+                                        vertical: 10,
+                                        horizontal: 12,
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(10),
@@ -168,15 +215,15 @@ class _LoginState extends State<Login> {
                                         ),
                                       ),
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                     ),
                                   ),
                                   IconButton(
                                     icon: Icon(
                                       isObscurePass
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
                                       size: 18,
                                       color: Colors.grey,
                                     ),
@@ -186,7 +233,10 @@ class _LoginState extends State<Login> {
                                   ),
                                 ],
                               ),
-                              5.getHeightWhiteSpacing,
+
+                              6.getHeightWhiteSpacing,
+
+                              // ── Forgot password ───────────────────
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: GestureDetector(
@@ -198,15 +248,19 @@ class _LoginState extends State<Login> {
                                     ),
                                   ),
                                   child: const Text(
-                                    "Forgot Password?",
+                                    "Forgot your password?",
                                     style: TextStyle(
                                       color: Color(0xffB0864C),
                                       fontSize: 12,
+                                      fontFamily: 'poppins',
                                     ),
                                   ),
                                 ),
                               ),
-                              20.getHeightWhiteSpacing,
+
+                              24.getHeightWhiteSpacing,
+
+                              // ── Sign in button ────────────────────
                               Consumer<AuthProvider>(
                                 builder: (context, auth, _) {
                                   return AppButtons(
@@ -219,71 +273,76 @@ class _LoginState extends State<Login> {
                                   );
                                 },
                               ),
-                              // 16.getHeightWhiteSpacing,
 
-                              // // ── Divider ──────────────────────────
-                              // Row(
-                              //   children: [
-                              //     Expanded(
-                              //       child: Divider(
-                              //         color: Colors.grey.shade400,
-                              //         thickness: 0.8,
-                              //       ),
-                              //     ),
-                              //     Padding(
-                              //       padding: const EdgeInsets.symmetric(
-                              //         horizontal: 10,
-                              //       ),
-                              //       child: Text(
-                              //         "or",
-                              //         style: TextStyle(
-                              //           color: Colors.grey.shade500,
-                              //           fontSize: 12,
-                              //         ),
-                              //       ),
-                              //     ),
-                              //     Expanded(
-                              //       child: Divider(
-                              //         color: Colors.grey.shade400,
-                              //         thickness: 0.8,
-                              //       ),
-                              //     ),
-                              //   ],
-                              // ),
+                              20.getHeightWhiteSpacing,
 
-                              // 12.getHeightWhiteSpacing,
-
-                              // // ── Google Sign In Button ─────────────
-                              // Consumer<AuthProvider>(
-                              //   builder: (context, auth, _) {
-                              //     return GoogleButton(
-                              //       onPressed: () => auth.googleSignIn(context),
-                              //     );
-                              //   },
-                              // ),
-
-                              10.getHeightWhiteSpacing,
+                              // ── Divider ───────────────────────────
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Text(
-                                    "First time here?",
-                                    style: TextStyle(color: Colors.black),
+                                  Expanded(
+                                    child: Divider(
+                                      color: Colors.grey.shade300,
+                                      thickness: 0.8,
+                                    ),
                                   ),
-                                  const SizedBox(width: 5),
-                                  GestureDetector(
-                                    onTap: () =>
-                                        Navigator.pushNamed(context, "/signup"),
-                                    child: const Text(
-                                      "Create account",
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                    child: Text(
+                                      "New to Peereess?",
                                       style: TextStyle(
-                                        color: Color(0xffB0864C),
-                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade500,
+                                        fontSize: 12,
+                                        fontFamily: 'poppins',
                                       ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Divider(
+                                      color: Colors.grey.shade300,
+                                      thickness: 0.8,
                                     ),
                                   ),
                                 ],
                               ),
+
+                              14.getHeightWhiteSpacing,
+
+                              // ── Create account ────────────────────
+                              Center(
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      Navigator.pushNamed(context, "/signup"),
+                                  child: RichText(
+                                    text: const TextSpan(
+                                      style: TextStyle(
+                                        fontFamily: 'poppins',
+                                        fontSize: 13,
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                          text: "Don't have an account? ",
+                                          style: TextStyle(
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: "Create Account",
+                                          style: TextStyle(
+                                            color: Color(0xffB0864C),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              16.getHeightWhiteSpacing,
+
+                              // ── Trust line ────────────────────────
                               50.getHeightWhiteSpacing,
                             ],
                           ),
@@ -294,11 +353,15 @@ class _LoginState extends State<Login> {
                 ),
               ),
             ),
+
+            // ── Loading overlay ──────────────────────
             if (auth.isLoading)
               Container(
                 color: Colors.black45,
                 child: const Center(child: LogoLoadingIndicator()),
               ),
+
+            // ── No connection banner ─────────────────
             if (!auth.isConnected)
               Positioned(
                 top: 0,
@@ -314,6 +377,7 @@ class _LoginState extends State<Login> {
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
+                          fontFamily: 'poppins',
                         ),
                       ),
                     ),

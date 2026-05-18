@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "U7NF93D5VY.com.peereess.app",
+        "paths": [
+          "/product/*"
+        ]
+      }
+    ]
+  }
+}

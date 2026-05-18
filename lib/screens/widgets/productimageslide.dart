@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:peereess/core/sharehelper.dart';
 import 'package:peereess/screens/widgets/loadingwidget.dart';
 import 'package:provider/provider.dart';
 import 'package:peereess/model/product.dart';
@@ -64,6 +65,14 @@ class _ProductImageSliderState extends State<ProductImageSlider> {
     );
   }
 
+  Future<void> _shareProduct() async {
+    await ShareHelper.shareProduct(
+      productId: widget.product.productId,
+      title: widget.product.title,
+      description: widget.product.description,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
@@ -118,7 +127,17 @@ class _ProductImageSliderState extends State<ProductImageSlider> {
                     child: Row(
                       children: [
                         GestureDetector(
-                          onTap: () => Navigator.pop(context),
+                          onTap: () {
+                            if (Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                            } else {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/home',
+                                (route) => false,
+                              );
+                            }
+                          },
                           child: Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
@@ -138,7 +157,13 @@ class _ProductImageSliderState extends State<ProductImageSlider> {
                           style: TextStyle(fontSize: 18),
                         ),
                         const Spacer(),
+
+                        /// ── SHARE BUTTON ──────────────────────────────
+                        _ShareButton(onTap: _shareProduct),
+
                         10.getWidthWhiteSpacing,
+
+                        /// ── LIKE BUTTON ───────────────────────────────
                         Consumer<ProductProvider>(
                           builder: (context, provider, _) {
                             final userId = context.read<AuthProvider>().userId;
@@ -268,6 +293,57 @@ class _ProductImageSliderState extends State<ProductImageSlider> {
   }
 }
 
+/// ================= SHARE BUTTON =================
+class _ShareButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _ShareButton({required this.onTap});
+
+  @override
+  State<_ShareButton> createState() => _ShareButtonState();
+}
+
+class _ShareButtonState extends State<_ShareButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final double iconScale = _isPressed ? 1.4 : 1.0;
+    final double containerScale = _isPressed ? 1.2 : 1.0;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: containerScale,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.white24,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: AnimatedScale(
+            scale: iconScale,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.elasticOut,
+            child: const Icon(
+              Icons.share_outlined,
+              size: 23,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// ================= FULL SCREEN VIEWER =================
 class _FullScreenImageViewer extends StatefulWidget {
   final List<String> images;
@@ -338,6 +414,7 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
   }
 }
 
+/// ================= LIKE BUTTON =================
 class _LikeButton extends StatefulWidget {
   final bool isLiked;
   final VoidCallback onTap;

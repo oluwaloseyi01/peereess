@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:peereess/databases/activitylogout.dart';
 import 'package:peereess/databases/config/sessionmanagement.dart';
+import 'package:peereess/databases/deeplink.dart';
 import 'package:peereess/databases/routeguard.dart';
 import 'package:peereess/firebase_options.dart';
 import 'package:peereess/provider/auth_provider.dart';
@@ -72,6 +73,7 @@ void main() async {
   } catch (e) {
     debugPrint('🔴 Notification init error: $e');
   }
+  DeepLinkService.init();
 }
 
 class Peereess extends StatelessWidget {
