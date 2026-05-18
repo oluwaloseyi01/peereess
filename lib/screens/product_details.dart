@@ -203,37 +203,39 @@ class _ProductDetailsState extends State<ProductDetails> {
                             ),
                           ),
 
-                        5.getHeightWhiteSpacing,
-                        Wrap(
-                          spacing: 8,
-                          children: product.colors
-                              .where(
-                            (color) => color != null && color.trim().isNotEmpty,
-                          )
-                              .map((color) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 3,
-                                horizontal: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: const Color.fromARGB(255, 233, 226, 226),
-                                border: Border.all(color: Colors.grey),
-                              ),
-                              child: Text(
-                                color,
-                                style: const TextStyle(
-                                  color: Color(0xff9D6E2D),
-                                  fontFamily: 'poppins',
-                                  fontSize: 9,
+                        if (product.colors
+                            .any((c) => c != null && c.trim().isNotEmpty)) ...[
+                          5.getHeightWhiteSpacing,
+                          Wrap(
+                            spacing: 8,
+                            children: product.colors
+                                .where((color) =>
+                                    color != null && color.trim().isNotEmpty)
+                                .map((color) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 3,
+                                  horizontal: 5,
                                 ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-
-                        15.getHeightWhiteSpacing,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color:
+                                      const Color.fromARGB(255, 233, 226, 226),
+                                  border: Border.all(color: Colors.grey),
+                                ),
+                                child: Text(
+                                  color,
+                                  style: const TextStyle(
+                                    color: Color(0xff9D6E2D),
+                                    fontFamily: 'poppins',
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                        10.getHeightWhiteSpacing,
 
                         // DESCRIPTION
                         const Text(
